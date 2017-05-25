@@ -1,3 +1,5 @@
+# intelij idea project files
+*.idea
 
 # Compiled python modules.
 *.pyc
