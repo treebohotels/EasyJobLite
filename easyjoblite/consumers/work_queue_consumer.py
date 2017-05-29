@@ -47,11 +47,12 @@ class WorkQueueConsumer(BaseRMQConsumer):
         :param message: queued message with headers and other metadata (contains a EasyJob object in headers)
         """
         logger = logging.getLogger(self.__class__.__name__)
-        job = EasyJob.create_from_dict(message.headers)
-        api = job.api
-        logger.debug("recieved api: " + str(api))
 
         try:
+            job = EasyJob.create_from_dict(message.headers)
+            api = job.api
+            logger.debug("recieved api: " + str(api))
+
             response = job.execute(body, self.get_config().async_timeout)
 
             if response.status_code >= 400:
@@ -74,8 +75,35 @@ class WorkQueueConsumer(BaseRMQConsumer):
             logger.error(e.message)
             self._push_message_to_error_queue(body, message, e.message)
             return
+        except easyjoblite.exception.UnableToCreateJob as e:
+            logger.error(e.message + " data: " + str(e.data))
+            self.__push_raw_msg_to_dlq(body=body,
+                                       message=message,
+                                       err_msg=e.message,
+                                       )
 
         message.ack()
+
+    def __push_raw_msg_to_dlq(self, body, message, err_msg):
+        """
+        pushes the raw message to dead letter queue for manual intervension and notification
+
+        :param body: body of the message
+        :param message: kombu amqp message object with headers and other metadata
+        :param error_mesg: what error caused this push to error queue
+        """
+        logger = logging.getLogger(self.__class__.__name__)
+
+        try:
+            logger.info("Moving raw item to DLQ for notification and manual intervention")
+            job = EasyJob()
+            job.data = message.headers
+            job.add_error(err_msg)
+            self.produce_to_queue(constants.DEAD_LETTER_QUEUE, body, job)
+
+        except Exception as e:
+            traceback.print_exc()
+            logger.error("Error moving the work-item to dead-letter-queue: {err}".format(err=e.message))
 
     def _push_msg_to_dlq(self, body, message, err_msg):
         """
@@ -85,10 +113,10 @@ class WorkQueueConsumer(BaseRMQConsumer):
         :param message: kombu amqp message object with headers and other metadata
         :param error_mesg: what error caused this push to error queue
         """
-        headers = message.headers
-        job = EasyJob.create_from_dict(message.headers)
         logger = logging.getLogger(self.__class__.__name__)
+
         try:
+            job = EasyJob.create_from_dict(message.headers)
             logger.info("Moving item to DLQ for notification and manual intervention")
             job.add_error(err_msg)
             self.produce_to_queue(constants.DEAD_LETTER_QUEUE, body, job)
@@ -96,6 +124,7 @@ class WorkQueueConsumer(BaseRMQConsumer):
         except Exception as e:
             traceback.print_exc()
             logger.error("Error moving the work-item to dead-letter-queue: {err}".format(err=e.message))
+            self.__push_raw_msg_to_dlq(body, message, err_msg)
 
     def _push_message_to_error_queue(self, body, message, error_mesg):
         """
@@ -124,9 +153,8 @@ class WorkQueueConsumer(BaseRMQConsumer):
             except Exception as e:
                 traceback.print_exc()
                 logger.error("Error moving the work-item to error-queue: {err}".format(err=e.message))
-                # todo: what do we do next in this case?
+                self.__push_raw_msg_to_dlq(body, message, e.message)
         else:
             er_message = "Max retries exceeded, moving work-item to DLQ for manual intervention: " + error_mesg
             logger.info(error_mesg)
-
             self._push_msg_to_dlq(body, message, er_message)

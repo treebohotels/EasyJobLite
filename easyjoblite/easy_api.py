@@ -6,10 +6,9 @@ import logging
 import pickle
 import traceback
 
-import requests
-
 import constants
 import exception
+import requests
 from response import EasyResponse
 from utils import as_text, is_string_type
 
@@ -143,8 +142,10 @@ class EasyApi(object):
             elif self.type == constants.API_LOCAL:
                 response = self._call_local(self.func, data)
                 if response and not is_string_type(response):
-                    ret_val.status_code = response.get("status_code", 200)
-                    ret_val.message = response.get("message", "Called local succesfully")
+                    if hasattr(response, 'status_code'):
+                        ret_val.status_code = response.status_code
+                    if hasattr(response, 'message'):
+                        ret_val.message = response.message
                     ret_val.data = response
                 logger.info("Calling api {api} with {data}".format(api=self.api, data=data))
         except Exception as e:

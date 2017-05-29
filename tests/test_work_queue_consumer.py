@@ -4,13 +4,12 @@ import sys
 from unittest import TestCase
 
 import os
-from mock import patch, Mock
-
 import test_class
 from easyjoblite import constants
 from easyjoblite.consumers import work_queue_consumer
 from easyjoblite.job import EasyJob
 from easyjoblite.orchestrator import Orchestrator
+from mock import patch, Mock
 
 logging.basicConfig()
 

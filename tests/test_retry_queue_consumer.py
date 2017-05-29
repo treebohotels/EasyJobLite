@@ -2,12 +2,11 @@ import json
 import socket
 from unittest import TestCase
 
-from mock import patch, Mock
-
 from easyjoblite import constants
 from easyjoblite.consumers.retry_queue_consumer import RetryQueueConsumer
 from easyjoblite.job import EasyJob
 from easyjoblite.orchestrator import Orchestrator
+from mock import patch, Mock
 
 
 class TestRetryQueueConsumer(TestCase):

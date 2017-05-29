@@ -4,13 +4,11 @@ work-queue consumer for b2b booking-exchange
 """
 
 import logging
-import sys
 
 import click
-import os
-
 import constants
 import orchestrator
+import os
 import state
 import utils
 
@@ -44,18 +42,15 @@ def start(type, url, import_paths, max_retries, asyc_timeout, eqc_sleep_duration
     """command to start a worker"""
     # todo: get rabbitmq config params from command line (e.g. user, passwd, host separately)
     logger = logging.getLogger("easyjobcli:start")
-    if import_paths:
-        sys.path = import_paths.split(':') + sys.path
 
     orst = orchestrator.Orchestrator(rabbitmq_url=url,
                                      async_timeout=int(asyc_timeout),
                                      max_retries=int(max_retries),
                                      eqc_sleep_duration=int(eqc_sleep_duration))
 
-    service_state = state.ServiceState(orst.get_config().pid_file_path)
-
     pid = os.getpid()
-    service_state.add_worker_pid(type, pid)
+
+    orst.update_consumer_pid(type, pid)
 
     logger.info("started worker of type {} with pid {}".format(type, pid))
 
@@ -73,7 +68,7 @@ def stop(type):
     if type in worker_type_list:
         utils.kill_workers(service_state, type)
         logger.info("Done stoping all the workers of type {}".format(type))
-    elif type == 'all':
+    elif type == constants.STOP_TYPE_ALL:
         for local_type in worker_type_list:
             utils.kill_workers(service_state, local_type)
         logger.info("Done stoping all the workers ")

@@ -1,11 +1,10 @@
 import json
 from unittest import TestCase
 
-from mock import patch, Mock
-
 from easyjoblite import constants
 from easyjoblite.consumers.dead_letter_queue_consumer import DeadLetterQueueConsumer
 from easyjoblite.orchestrator import Orchestrator
+from mock import patch, Mock
 
 
 class TestRetryQueueConsumer(TestCase):

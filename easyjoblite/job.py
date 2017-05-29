@@ -1,13 +1,19 @@
 # -*- coding: utf-8 -*-
 
 import json
+import random
+import string
+import time
 
 import constants
 from easy_api import EasyApi
+from exception import UnableToCreateJob
 
 
 class EasyJob(object):
     def __init__(self):
+        self.id = "1"
+        self.type = None
         self.tag = "unknown"
         self.job_api = None
         self.no_of_retries = 0
@@ -21,9 +27,15 @@ class EasyJob(object):
         return self.job_api.api
 
     @classmethod
+    def generate_id(cls):
+        return "-".join(str(time.time()), random.choice(string.digits))
+
+    @classmethod
     def create(cls, api, type, remote_call_type=None, data=None, api_request_headers=None,
                content_type=None, should_notify_error=False, tag=None, notification_handler=None):
         job = cls()
+        job.type = type
+        job.id = cls.generate_id()
         job.job_api = EasyApi.create(type, api, api_request_headers, remote_call_type, content_type)
         if notification_handler:
             job.notification_handler = EasyApi.create(type,
@@ -41,22 +53,31 @@ class EasyJob(object):
 
     @classmethod
     def create_from_dict(cls, dict):
-        job = cls()
-        if "tag" in dict:
-            job.tag = dict["tag"]
-        job.data = dict.get("data", None)
-        job.should_notify_error = dict.get("should_notify_error", False)
-        if "job_api" in dict:
-            job.job_api = EasyApi.create_from_dict(dict["job_api"])
-        job.no_of_retries = dict.get("no_of_retries", 0)
-        if "errors" in dict:
-            job.errors = dict["errors"]
-        if "notification_handler" in dict:
-            job.notification_handler = EasyApi.create_from_dict(dict["notification_handler"])
+        try:
+            job = cls()
+            if "id" in dict:
+                job.id = dict["id"]
+            if "type" in dict:
+                job.type = dict["type"]
+            if "tag" in dict:
+                job.tag = dict["tag"]
+            job.data = dict.get("data", None)
+            job.should_notify_error = dict.get("should_notify_error", False)
+            if "job_api" in dict:
+                job.job_api = EasyApi.create_from_dict(dict["job_api"])
+            job.no_of_retries = dict.get("no_of_retries", 0)
+            if "errors" in dict:
+                job.errors = dict["errors"]
+            if "notification_handler" in dict:
+                job.notification_handler = EasyApi.create_from_dict(dict["notification_handler"])
+        except Exception as e:
+            raise UnableToCreateJob(e.message, dict)
         return job
 
     def to_dict(self):
         dict = {
+            "id": self.id,
+            "type": self.type,
             "job_api": self.job_api.to_dict(),
             "tag": self.tag,
             "data": self.data,
@@ -77,8 +98,8 @@ class EasyJob(object):
         return self.job_api.execute(data, async_timeout)
 
     def notify_error(self, data, async_timeout=constants.DEFAULT_ASYNC_TIMEOUT):
-        data.update({"errors": self.errors})
-        return self.notification_handler.execute(data, async_timeout)
+        error_data = dict(api=self.job_api.api, data=data, errors=self.errors)
+        return self.notification_handler.execute(error_data, async_timeout)
 
     def increment_retries(self):
         self.no_of_retries += 1

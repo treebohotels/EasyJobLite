@@ -41,3 +41,6 @@ DEFAULT_DLQ_CONSUMER_COUNT = 3
 DEFAULT_IMPORT_PATHS = '.'
 DEFAULT_PID_FILE_LOCATION = "/var/tmp/easyjoblite.pid"
 DEFAULT_LOG_FILE_PATH = "/var/tmp/easyjoblite.log"
+
+BASE_COMMAND = "nohup easyjoblite"
+STOP_TYPE_ALL = "all"

@@ -2,7 +2,6 @@ import sys
 from unittest import TestCase
 
 import os
-
 import test_class
 from easyjoblite import constants
 from easyjoblite.easy_api import EasyApi

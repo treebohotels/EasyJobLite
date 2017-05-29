@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 
-import os
-
 import constants
+import os
 import utils
 
 

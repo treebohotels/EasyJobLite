@@ -26,3 +26,16 @@ class EasyJobServiceNotStarted(Exception):
         message = "The easy job service is not started."
 
         super(EasyJobServiceNotStarted, self).__init__(message)
+
+
+class UnableToCreateJob(Exception):
+    def __init__(self, data):
+        """
+        raised when unable to create an easyjob
+        """
+
+        self.data = data
+
+        message = "Unable to create job."
+
+        super(UnableToCreateJob, self).__init__(message)

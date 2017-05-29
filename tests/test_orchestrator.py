@@ -1,13 +1,12 @@
 import json
 from unittest import TestCase
 
-from kombu.entity import PERSISTENT_DELIVERY_MODE
-from mock import patch, Mock
-
 from easyjoblite import constants
 from easyjoblite.exception import EasyJobServiceNotStarted
 from easyjoblite.job import EasyJob
 from easyjoblite.orchestrator import Orchestrator
+from kombu.entity import PERSISTENT_DELIVERY_MODE
+from mock import patch, Mock
 
 
 class TestEasyApi(TestCase):
@@ -33,14 +32,14 @@ class TestEasyApi(TestCase):
         # create a basic orchestrator
         orchestrator = Orchestrator(rabbitmq_url="test.rabbitmq.com:8000")
 
-        orchestrator._setup_entities()
+        orchestrator.setup_entities()
         exchange_mock.assert_called_with("booking-exchange", type='topic', durable=True)
 
         connection_mock.assert_called_with("test.rabbitmq.com:8000", transport_options={'confirm_publish': True})
 
         producer_mock.assert_called()
 
-    @patch("easyjoblite.orchestrator.Orchestrator._setup_entities")
+    @patch("easyjoblite.orchestrator.Orchestrator.setup_entities")
     @patch("easyjoblite.orchestrator.Orchestrator.create_consumer")
     @patch("easyjoblite.orchestrator.time.sleep")
     def test_start_service(self, sleep_mock, create_cunsumer_mock, _setup_entities_mock):

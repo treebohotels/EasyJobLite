@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 def local_method_job_failed(data):
-
     '''
     this function is called as part of the job
     :param data: 

@@ -2,6 +2,7 @@
 import logging
 import pickle
 import signal
+import sys
 
 import os
 
@@ -73,3 +74,13 @@ def kill_workers(service_state, type):
         kill_process(pid)
         service_state.remove_worker_pid(type, pid)
         logging.info("Done killing : " + str(pid))
+
+
+def update_import_paths(import_paths):
+    """
+    update the import paths in the system
+    :param import_paths: 
+    :return: 
+    """
+    if import_paths:
+        sys.path = import_paths.split(':') + sys.path

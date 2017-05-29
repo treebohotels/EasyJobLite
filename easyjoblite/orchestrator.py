@@ -1,22 +1,25 @@
 # -*- coding: utf-8 -*-
 
+import subprocess
 import time
 from exceptions import KeyError
+from multiprocessing import Process
 
+import constants
 import os
+from configuration import Configuration
+from easyjoblite import state
+from easyjoblite.consumers.dead_letter_queue_consumer import DeadLetterQueueConsumer
+from easyjoblite.consumers.retry_queue_consumer import RetryQueueConsumer
+from easyjoblite.consumers.work_queue_consumer import WorkQueueConsumer
+from easyjoblite.utils import update_import_paths
+from exception import EasyJobServiceNotStarted
+from job import EasyJob
 from kombu import Connection
 from kombu import Exchange
 from kombu import Producer
 from kombu import Queue
 from kombu.entity import PERSISTENT_DELIVERY_MODE
-
-import constants
-from configuration import Configuration
-from easyjoblite.consumers.dead_letter_queue_consumer import DeadLetterQueueConsumer
-from easyjoblite.consumers.retry_queue_consumer import RetryQueueConsumer
-from easyjoblite.consumers.work_queue_consumer import WorkQueueConsumer
-from exception import EasyJobServiceNotStarted
-from job import EasyJob
 
 
 class Orchestrator(object):
@@ -31,6 +34,22 @@ class Orchestrator(object):
 
         self.set_config(**kwargs)
         self._service_started = False
+
+    def validate_init(self):
+        if not self._service_started:
+            raise EasyJobServiceNotStarted()
+
+    def get_connection(self):
+        self.validate_init()
+        return self._conn
+
+    def get_config(self):
+        return self._config
+
+    def update_consumer_pid(self, type, pid):
+        service_state = state.ServiceState(self.get_config().pid_file_path)
+
+        service_state.add_worker_pid(type, pid)
 
     def set_config(self, **kwargs):
         """
@@ -49,6 +68,7 @@ class Orchestrator(object):
 
         if 'import_paths' in kwargs:
             self._config.import_paths = kwargs['import_paths']
+            update_import_paths(self._config.import_paths)
 
         if 'max_worker_count' in kwargs:
             self._config.max_worker_count = kwargs['max_worker_count']
@@ -62,27 +82,39 @@ class Orchestrator(object):
         if 'default_dl_consumer_count' in kwargs:
             self._config.default_dl_consumer_count = kwargs['default_dl_consumer_count']
 
-    def start_service(self):
-
+    def start_service(self, is_detached=False):
+        """
+        starts the service
+        :return: 
+        """
         # Setup the entities
-        self._setup_entities()
+        self.setup_entities()
 
+        # create all consumers
+        self.create_all_consumers(is_detached)
+
+    def create_all_consumers(self, is_detached=False):
+        """
+        creates all the consumes needed by the service
+        :param is_detached: 
+        :return: 
+        """
         # create the workers
         for i in range(self._config.default_worker_count):
-            self.create_consumer(constants.WORK_QUEUE)
+            self.create_consumer(constants.WORK_QUEUE, is_detached)
             time.sleep(2)
 
         # create the retry queue consumers
         for i in range(self._config.default_retry_consumer_count):
-            self.create_consumer(constants.RETRY_QUEUE)
+            self.create_consumer(constants.RETRY_QUEUE, is_detached)
             time.sleep(2)
 
         # create the dead letter consumers
         for i in range(self._config.default_dl_consumer_count):
-            self.create_consumer(constants.DEAD_LETTER_QUEUE)
+            self.create_consumer(constants.DEAD_LETTER_QUEUE, is_detached)
             time.sleep(2)
 
-    def _setup_entities(self):
+    def setup_entities(self):
         """
         declare all required entities
         no advanced error handling yet (like error on declaration with altered properties etc)
@@ -137,42 +169,23 @@ class Orchestrator(object):
 
         self._service_started = True
 
-    def validate_init(self):
-        if not self._service_started:
-            raise EasyJobServiceNotStarted()
+    def create_consumer(self, type, is_detached=False):
+        if is_detached:
+            self.create_consumer_detached(type)
+        else:
+            self.fork_consumer(type)
 
-    def get_connection(self):
-        self.validate_init()
-        return self._conn
+    def fork_consumer(self, type):
+        p = Process(target=self.start_consumer, args=(type,))
+        p.start()
+        self.update_consumer_pid(type, p.pid)
 
-    def enqueue_job(self, api, type, tag=None, remote_call_type=None, data=None, api_request_headers=None,
-                    content_type=None, should_notify_error=False, notification_handler=None):
-        self.validate_init()
+    def create_consumer_detached(self, type):
 
-        # create the job
-        job = EasyJob.create(api, type, tag=tag, remote_call_type=remote_call_type, data=data,
-                             api_request_headers=api_request_headers,
-                             content_type=content_type, should_notify_error=should_notify_error,
-                             notification_handler=notification_handler)
+        command_str = constants.BASE_COMMAND
 
-        # enqueue
-        self.enqueue(constants.WORK_QUEUE, job, data)
-
-    def enqueue(self, queue_type, job, body):
-        self.validate_init()
-        routing_key = "{type}.{tag}".format(type=queue_type, tag=job.tag)
-        headers = job.to_dict()
-        self._producer.publish(body=body,
-                               headers=headers,
-                               routing_key=routing_key,
-                               delivery_mode=PERSISTENT_DELIVERY_MODE)
-
-    def get_config(self):
-        return self._config
-
-    def create_consumer(self, type):
-
-        command_str = "nohup easyjoblite start "
+        # Add command
+        command_str += " start "
 
         # Add type
         command_str += str(type)
@@ -193,15 +206,34 @@ class Orchestrator(object):
         command_str += " --import_paths " + str(self.get_config().import_paths)
 
         # append log to log path
-        command_str += " >" + self.get_config().workers_log_file_path \
- \
+        command_str += " >" + self.get_config().workers_log_file_path
+
         # run in background
         command_str += "&"
+
+        subprocess.Popen(command_str, shell=True)
+
+    def stop_server(self, type=constants.STOP_TYPE_ALL):
+        """
+        Stop the server and kill all the workers
+        :param type: the type of command
+        :return: 
+        """
+        command_str = constants.BASE_COMMAND
+
+        # Add stop command
+        command_str += " stop "
+
+        # Add type of command
+        command_str += type
+
+        # run in background
+        command_str += " &"
 
         os.system(command_str)
 
     def start_consumer(self, type):
-        self._setup_entities()
+        self.setup_entities()
 
         if type not in self.consumer_creater_map:
             raise KeyError("Invalid consumer type")
@@ -222,3 +254,27 @@ class Orchestrator(object):
         self.validate_init()
         dead_letter_consumer = DeadLetterQueueConsumer(self)
         dead_letter_consumer.consume_from_dead_letter_queue(self.dlq_queue)
+
+    def enqueue_job(self, api, type, tag=None, remote_call_type=None, data=None, api_request_headers=None,
+                    content_type=None, should_notify_error=False, notification_handler=None):
+        self.validate_init()
+
+        # create the job
+        job = EasyJob.create(api, type, tag=tag, remote_call_type=remote_call_type, data=data,
+                             api_request_headers=api_request_headers,
+                             content_type=content_type, should_notify_error=should_notify_error,
+                             notification_handler=notification_handler)
+
+        # enqueue
+        self.enqueue(constants.WORK_QUEUE, job, data)
+
+        return job.id
+
+    def enqueue(self, queue_type, job, body):
+        self.validate_init()
+        routing_key = "{type}.{tag}".format(type=queue_type, tag=job.tag)
+        headers = job.to_dict()
+        self._producer.publish(body=body,
+                               headers=headers,
+                               routing_key=routing_key,
+                               delivery_mode=PERSISTENT_DELIVERY_MODE)
