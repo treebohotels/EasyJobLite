@@ -23,6 +23,7 @@ from kombu.entity import PERSISTENT_DELIVERY_MODE
 
 
 class Orchestrator(object):
+
     def __init__(self, **kwargs):
         self.consumer_creater_map = {
             constants.WORK_QUEUE: self.create_work_cunsumer,
@@ -33,10 +34,10 @@ class Orchestrator(object):
         self._config = Configuration(rabbitmq_url=kwargs['rabbitmq_url'])
 
         self.set_config(**kwargs)
-        self._service_started = False
+        self._service_inited = False
 
     def validate_init(self):
-        if not self._service_started:
+        if not self._service_inited:
             raise EasyJobServiceNotStarted()
 
     def get_connection(self):
@@ -48,12 +49,11 @@ class Orchestrator(object):
 
     def update_consumer_pid(self, type, pid):
         service_state = state.ServiceState(self.get_config().pid_file_path)
-
         service_state.add_worker_pid(type, pid)
 
     def set_config(self, **kwargs):
         """
-            set config values
+        set config values
         :param kwargs: contains the dict with all key values
         :return: 
         """
@@ -120,7 +120,7 @@ class Orchestrator(object):
         no advanced error handling yet (like error on declaration with altered properties etc)
         """
         # return if already inited
-        if self._service_started:
+        if self._service_inited:
             return
 
         # setup exchange
@@ -167,21 +167,36 @@ class Orchestrator(object):
         self._producer = Producer(channel=self._conn.channel(),
                                   exchange=self._booking_exchange)
 
-        self._service_started = True
+        self._service_inited = True
 
     def create_consumer(self, type, is_detached=False):
+        """
+        create a worker for the queue
+        :param type: type of worker
+        :param is_detached: if true then will run as a seperate process else will run as a fork of the script.
+        :return: 
+        """
         if is_detached:
             self.create_consumer_detached(type)
         else:
             self.fork_consumer(type)
 
     def fork_consumer(self, type):
+        """
+        create a consumer by forking the current processes
+        :param type: type of worker
+        :return: none
+        """
         p = Process(target=self.start_consumer, args=(type,))
         p.start()
         self.update_consumer_pid(type, p.pid)
 
     def create_consumer_detached(self, type):
-
+        """
+        create a consumer by calling the cli
+        :param type: type of worker to be created
+        :return: none
+        """
         command_str = constants.BASE_COMMAND
 
         # Add command
@@ -257,6 +272,19 @@ class Orchestrator(object):
 
     def enqueue_job(self, api, type, tag=None, remote_call_type=None, data=None, api_request_headers=None,
                     content_type=None, should_notify_error=False, notification_handler=None):
+        """
+        Enqueue a job to be processed.
+        :param api: The api to be called when job is run
+        :param type: The type of job (Remote/Local) when local then a python call is made and in remote an REST call is made.
+        :param tag: a tag for the job to be run
+        :param remote_call_type: is the call POST/GET/PUT
+        :param data: a data payload to be passed along in the job
+        :param api_request_headers: request headers to be passed along in a remote call
+        :param content_type: content type to be used in remote call
+        :param should_notify_error: if true then error callback is called when the job goes into dlq
+        :param notification_handler: the api to be called when a job goes into dlq (type same as api)
+        :return: A unique job id assigned to the job.
+        """
         self.validate_init()
 
         # create the job
@@ -271,6 +299,13 @@ class Orchestrator(object):
         return job.id
 
     def enqueue(self, queue_type, job, body):
+        """
+        enque a job in the given queue
+        :param queue_type: type of queue (worker, retry, dead)
+        :param job: the job object
+        :param body: the body payload of the job
+        :return: none
+        """
         self.validate_init()
         routing_key = "{type}.{tag}".format(type=queue_type, tag=job.tag)
         headers = job.to_dict()

@@ -18,9 +18,18 @@ class ServiceState(object):
             self.persist_state()
 
     def persist_state(self):
+        """
+        Persist the library pid state to the pid file
+        :return: 
+        """
         utils.save_obj(self, self.pid_file)
 
     def get_pid_list(self, type):
+        """
+        Get the pid list for the give type of worker
+        :param type: type of worker
+        :return: 
+        """
         if type == constants.WORK_QUEUE:
             return self.job_worker_pids
         elif type == constants.RETRY_QUEUE:
@@ -31,6 +40,12 @@ class ServiceState(object):
             raise KeyError("Invalid key : " + str(type))
 
     def add_worker_pid(self, type, pid):
+        """
+        add a pid for the worker
+        :param type: type of worker
+        :param pid: pid to be added
+        :return: 
+        """
         if type == constants.WORK_QUEUE:
             self.job_worker_pids.append(pid)
         elif type == constants.RETRY_QUEUE:
@@ -42,6 +57,12 @@ class ServiceState(object):
         self.persist_state()
 
     def remove_worker_pid(self, type, pid):
+        """
+        remove a worker pid from the list
+        :param type: type of worker
+        :param pid: pid to be removed
+        :return: 
+        """
         if type == constants.WORK_QUEUE:
             self.job_worker_pids.remove(pid)
         elif type == constants.RETRY_QUEUE:

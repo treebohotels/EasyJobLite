@@ -28,7 +28,7 @@ class EasyJob(object):
 
     @classmethod
     def generate_id(cls):
-        return "-".join(str(time.time()), random.choice(string.digits))
+        return "-".join([str(time.time()), random.choice(string.digits)])
 
     @classmethod
     def create(cls, api, type, remote_call_type=None, data=None, api_request_headers=None,

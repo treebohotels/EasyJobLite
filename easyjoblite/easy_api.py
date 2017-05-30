@@ -125,6 +125,12 @@ class EasyApi(object):
         return func_call(data)
 
     def execute(self, data, async_timeout=constants.DEFAULT_ASYNC_TIMEOUT):
+        """
+        execute the api call
+        :param data: data to be sent while executing
+        :param async_timeout: time out for the api (honoured only in case of remote)
+        :return: 
+        """
         logger = logging.getLogger(self.__class__.__name__)
         ret_val = EasyResponse(200, "")
         try:

@@ -47,7 +47,7 @@ def load_obj(path):
         return pickle.load(f)
 
 
-def kill_process(pid, retry=3):
+def kill_process(pid):
     """
     kill a process for a given pid
     :param pid: pid to be killed

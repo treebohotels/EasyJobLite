@@ -7,7 +7,7 @@ from easyjoblite.orchestrator import Orchestrator
 from mock import patch, Mock
 
 
-class TestRetryQueueConsumer(TestCase):
+class TestDeadLetterQueueConsumer(TestCase):
     def setUp(self):
         self.orchestrator = Orchestrator(rabbitmq_url="test.rabbitmq.com:8000")
 

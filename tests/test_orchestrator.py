@@ -9,13 +9,13 @@ from kombu.entity import PERSISTENT_DELIVERY_MODE
 from mock import patch, Mock
 
 
-class TestEasyApi(TestCase):
+class TestOrchestrator(TestCase):
     def test_constructor(self):
         # create a basic orchestrator
         orchestrator = Orchestrator(rabbitmq_url="test.rabbitmq.com:8000")
 
         # test is started should be false
-        self.assertEqual(orchestrator._service_started, False)
+        self.assertEqual(orchestrator._service_inited, False)
 
         # test that service validation should through an exception
         with self.assertRaises(EasyJobServiceNotStarted) as e:
@@ -108,7 +108,7 @@ class TestEasyApi(TestCase):
         with self.assertRaises(EasyJobServiceNotStarted) as e:
             orchestrator.enqueue("test", job, body)
 
-        orchestrator.start_service()
+        orchestrator.setup_entities()
 
         orchestrator.enqueue("test", job, body)
         producer_mk.publish.assert_called_with(body=body, headers=job.to_dict(),
@@ -134,7 +134,7 @@ class TestEasyApi(TestCase):
             orchestrator.enqueue_job(api, constants.API_REMOTE, api_request_headers=api_request_headers,
                                      should_notify_error=True, data=body)
 
-        orchestrator.start_service()
+        orchestrator.setup_entities()
 
         orchestrator.enqueue_job(api, constants.API_REMOTE, api_request_headers=api_request_headers,
                                  should_notify_error=True, data=body)
