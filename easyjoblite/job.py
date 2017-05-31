@@ -28,7 +28,8 @@ class EasyJob(object):
 
     @classmethod
     def generate_id(cls):
-        return "-".join([str(time.time()), random.choice(string.digits)])
+        return "-".join(["".join(str(time.time()).split('.')), random.choice(string.digits)])
+
 
     @classmethod
     def create(cls, api, type, remote_call_type=None, data=None, api_request_headers=None,
@@ -95,10 +96,11 @@ class EasyJob(object):
         self.errors.append(error)
 
     def execute(self, data, async_timeout=constants.DEFAULT_ASYNC_TIMEOUT):
-        return self.job_api.execute(data, async_timeout)
+        api_dict = dict(job_id= self.id, tag=self.tag, data=data)
+        return self.job_api.execute(api_dict, async_timeout)
 
     def notify_error(self, data, async_timeout=constants.DEFAULT_ASYNC_TIMEOUT):
-        error_data = dict(api=self.job_api.api, data=data, errors=self.errors)
+        error_data = dict(job_id=self.id, tag= self.tag, api=self.job_api.api, data=data, errors=self.errors)
         return self.notification_handler.execute(error_data, async_timeout)
 
     def increment_retries(self):
