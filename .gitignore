@@ -13,4 +13,5 @@
 # Ignore all the coverage files as they can be genrated at any point of time
 /htmlcov/
 
-
+# Ignore all build files
+/build/
