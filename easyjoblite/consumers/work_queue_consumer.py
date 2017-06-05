@@ -64,8 +64,8 @@ class WorkQueueConsumer(BaseRMQConsumer):
                     # we have a retry-able failure
                     self._push_message_to_error_queue(body, message, response.message)
 
-                # Check if the error is set to be notified then add to dlq
-                if job.should_notify_error():
+                else:
+                    # push not retry-able error to dlq
                     self._push_msg_to_dlq(body=body,
                                           message=message,
                                           err_msg=response.message,
@@ -74,7 +74,6 @@ class WorkQueueConsumer(BaseRMQConsumer):
             traceback.print_exc()
             logger.error(e.message)
             self._push_message_to_error_queue(body, message, e.message)
-            return
         except easyjoblite.exception.UnableToCreateJob as e:
             logger.error(e.message + " data: " + str(e.data))
             self.__push_raw_msg_to_dlq(body=body,
