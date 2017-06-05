@@ -18,13 +18,15 @@ class EasyJob(object):
         self.job_api = None
         self.no_of_retries = 0
         self.data = None
-        self.should_notify_error = False
         self.notification_handler = None
         self.errors = []
 
     @property
     def api(self):
         return self.job_api.api
+
+    def should_notify_error(self):
+        return self.notification_handler is not None
 
     @classmethod
     def generate_id(cls):
@@ -33,7 +35,7 @@ class EasyJob(object):
 
     @classmethod
     def create(cls, api, type, remote_call_type=None, data=None, api_request_headers=None,
-               content_type=None, should_notify_error=False, tag=None, notification_handler=None):
+               content_type=None, tag=None, notification_handler=None):
         job = cls()
         job.type = type
         job.id = cls.generate_id()
@@ -49,7 +51,6 @@ class EasyJob(object):
             job.data = json.dumps(data)
         if tag:
             job.tag = tag
-        job.should_notify_error = should_notify_error
         return job
 
     @classmethod
@@ -63,7 +64,6 @@ class EasyJob(object):
             if "tag" in dict:
                 job.tag = dict["tag"]
             job.data = dict.get("data", None)
-            job.should_notify_error = dict.get("should_notify_error", False)
             if "job_api" in dict:
                 job.job_api = EasyApi.create_from_dict(dict["job_api"])
             job.no_of_retries = dict.get("no_of_retries", 0)
@@ -82,7 +82,6 @@ class EasyJob(object):
             "job_api": self.job_api.to_dict(),
             "tag": self.tag,
             "data": self.data,
-            "should_notify_error": self.should_notify_error,
             "no_of_retries": self.no_of_retries,
             "errors": self.errors
         }
@@ -101,7 +100,8 @@ class EasyJob(object):
 
     def notify_error(self, data, async_timeout=constants.DEFAULT_ASYNC_TIMEOUT):
         error_data = dict(job_id=self.id, tag= self.tag, api=self.job_api.api, data=data, errors=self.errors)
-        return self.notification_handler.execute(error_data, async_timeout)
+        if self.should_notify_error():
+            return self.notification_handler.execute(error_data, async_timeout)
 
     def increment_retries(self):
         self.no_of_retries += 1

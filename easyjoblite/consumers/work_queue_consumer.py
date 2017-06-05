@@ -65,7 +65,7 @@ class WorkQueueConsumer(BaseRMQConsumer):
                     self._push_message_to_error_queue(body, message, response.message)
 
                 # Check if the error is set to be notified then add to dlq
-                if job.should_notify_error:
+                if job.should_notify_error():
                     self._push_msg_to_dlq(body=body,
                                           message=message,
                                           err_msg=response.message,
