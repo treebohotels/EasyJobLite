@@ -108,8 +108,10 @@ class TestWorkQueueConsumer(TestCase):
         work_queue_con = work_queue_consumer.WorkQueueConsumer(self.orchestrator)
         work_queue_con.process_message(body, message)
 
+        data_body = {'tag': 'unknown', 'data': body, 'job_id': job.id}
+
         # when return in 200
-        post.assert_called_with(api, data=body, timeout=constants.DEFAULT_ASYNC_TIMEOUT,
+        post.assert_called_with(api, data=data_body, timeout=constants.DEFAULT_ASYNC_TIMEOUT,
                                 headers=api_request_headers)
 
         # when the status code is 410 (in the error list to be reported
