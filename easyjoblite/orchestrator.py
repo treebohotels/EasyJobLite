@@ -271,7 +271,7 @@ class Orchestrator(object):
         dead_letter_consumer.consume_from_dead_letter_queue(self.dlq_queue)
 
     def enqueue_job(self, api, type, tag=None, remote_call_type=None, data=None, api_request_headers=None,
-                    content_type=None, should_notify_error=False, notification_handler=None):
+                    content_type=None, notification_handler=None):
         """
         Enqueue a job to be processed.
         :param api: The api to be called when job is run
@@ -281,7 +281,6 @@ class Orchestrator(object):
         :param data: a data payload to be passed along in the job
         :param api_request_headers: request headers to be passed along in a remote call
         :param content_type: content type to be used in remote call
-        :param should_notify_error: if true then error callback is called when the job goes into dlq
         :param notification_handler: the api to be called when a job goes into dlq (type same as api)
         :return: A unique job id assigned to the job.
         """
@@ -290,8 +289,7 @@ class Orchestrator(object):
         # create the job
         job = EasyJob.create(api, type, tag=tag, remote_call_type=remote_call_type, data=data,
                              api_request_headers=api_request_headers,
-                             content_type=content_type, should_notify_error=should_notify_error,
-                             notification_handler=notification_handler)
+                             content_type=content_type, notification_handler=notification_handler)
 
         # enqueue
         self.enqueue(constants.WORK_QUEUE, job, data)

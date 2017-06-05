@@ -52,8 +52,7 @@ class TestRetryQueueConsumer(TestCase):
         message = Mock()
         api = "http://test.api.com/test_dest"
         api_request_headers = {"title": "Yippi"}
-        job = EasyJob.create(api, constants.API_REMOTE, api_request_headers=api_request_headers,
-                             should_notify_error=True)
+        job = EasyJob.create(api, constants.API_REMOTE, api_request_headers=api_request_headers)
         headers = {}
         headers.update(job.to_dict())
         message.headers = headers
@@ -76,8 +75,7 @@ class TestRetryQueueConsumer(TestCase):
         message = Mock()
         api = "http://test.api.com/test_dest"
         api_request_headers = {"title": "Yippi"}
-        job = EasyJob.create(api, constants.API_REMOTE, api_request_headers=api_request_headers,
-                             should_notify_error=True)
+        job = EasyJob.create(api, constants.API_REMOTE, api_request_headers=api_request_headers)
         headers = {}
         headers.update(job.to_dict())
         message.headers = headers

@@ -102,8 +102,7 @@ class TestOrchestrator(TestCase):
         body = json.dumps({"body": "work body"})
         api = "http://test.api.com/test_dest"
         api_request_headers = {"title": "Yippi"}
-        job = EasyJob.create(api, constants.API_REMOTE, api_request_headers=api_request_headers,
-                             should_notify_error=True)
+        job = EasyJob.create(api, constants.API_REMOTE, api_request_headers=api_request_headers)
 
         with self.assertRaises(EasyJobServiceNotStarted) as e:
             orchestrator.enqueue("test", job, body)
@@ -131,11 +130,9 @@ class TestOrchestrator(TestCase):
         api_request_headers = {"title": "Yippi"}
 
         with self.assertRaises(EasyJobServiceNotStarted) as e:
-            orchestrator.enqueue_job(api, constants.API_REMOTE, api_request_headers=api_request_headers,
-                                     should_notify_error=True, data=body)
+            orchestrator.enqueue_job(api, constants.API_REMOTE, api_request_headers=api_request_headers, data=body)
 
         orchestrator.setup_entities()
 
-        orchestrator.enqueue_job(api, constants.API_REMOTE, api_request_headers=api_request_headers,
-                                 should_notify_error=True, data=body)
+        orchestrator.enqueue_job(api, constants.API_REMOTE, api_request_headers=api_request_headers, data=body)
         enqueue_mock.assert_called_with("work", job_mock, body)

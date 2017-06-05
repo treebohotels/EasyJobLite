@@ -73,8 +73,7 @@ class TestWorkQueueConsumer(TestCase):
         body = {"body": "work body"}
         message = Mock()
         api_request_headers = {"title": "Yippi"}
-        job = EasyJob.create("test_api", constants.API_REMOTE, api_request_headers=api_request_headers,
-                             should_notify_error=True)
+        job = EasyJob.create("test_api", constants.API_REMOTE, api_request_headers=api_request_headers)
         headers = {}
         headers.update(job.to_dict())
         message.headers = headers
@@ -102,8 +101,7 @@ class TestWorkQueueConsumer(TestCase):
         message = Mock()
         api = "http://test.api.com/test_dest"
         api_request_headers = {"title": "Yippi"}
-        job = EasyJob.create(api, constants.API_REMOTE, api_request_headers=api_request_headers,
-                             should_notify_error=True)
+        job = EasyJob.create(api, constants.API_REMOTE, api_request_headers=api_request_headers)
         headers = {}
         headers.update(job.to_dict())
         message.headers = headers
@@ -133,7 +131,7 @@ class TestWorkQueueConsumer(TestCase):
 
         # test with module function
         api = test_class.dummy_function_external
-        job = EasyJob.create(api, constants.API_LOCAL, should_notify_error=True)
+        job = EasyJob.create(api, constants.API_LOCAL)
 
         headers = {}
         headers.update(job.to_dict())
@@ -144,7 +142,7 @@ class TestWorkQueueConsumer(TestCase):
 
         # test with string function
         api = "tests.test_class.dummy_function_external"
-        job = EasyJob.create(api, constants.API_LOCAL, should_notify_error=True)
+        job = EasyJob.create(api, constants.API_LOCAL)
 
         headers = {}
         headers.update(job.to_dict())
@@ -156,7 +154,7 @@ class TestWorkQueueConsumer(TestCase):
         # test with instance function
         test_cls = test_class.TestClass()
         api = test_cls.dummy_function_in_class
-        job = EasyJob.create(api, constants.API_LOCAL, should_notify_error=True)
+        job = EasyJob.create(api, constants.API_LOCAL)
 
         headers = {}
         headers.update(job.to_dict())
@@ -167,7 +165,7 @@ class TestWorkQueueConsumer(TestCase):
 
         # test with instance class
         tst_class = test_class.TestClass()
-        job = EasyJob.create(tst_class, constants.API_LOCAL, should_notify_error=True)
+        job = EasyJob.create(tst_class, constants.API_LOCAL)
 
         headers = {}
         headers.update(job.to_dict())
