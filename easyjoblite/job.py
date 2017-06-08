@@ -8,6 +8,7 @@ import time
 import constants
 from easy_api import EasyApi
 from exception import UnableToCreateJob
+from easyjoblite.response import EasyResponse
 
 
 class EasyJob(object):
@@ -79,12 +80,16 @@ class EasyJob(object):
         dict = {
             "id": self.id,
             "type": self.type,
-            "job_api": self.job_api.to_dict(),
             "tag": self.tag,
             "data": self.data,
             "no_of_retries": self.no_of_retries,
             "errors": self.errors
         }
+        if self.job_api:
+            dict["job_api"] = self.job_api.to_dict()
+        else:
+            dict["job_api"] = None
+
         if self.notification_handler:
             dict["notification_handler"] = self.notification_handler.to_dict()
         else:
@@ -102,6 +107,8 @@ class EasyJob(object):
         error_data = dict(job_id=self.id, tag= self.tag, api=self.job_api.api, data=data, errors=self.errors)
         if self.should_notify_error():
             return self.notification_handler.execute(error_data, async_timeout)
+        else:
+            return EasyResponse(400, "No notification handler defined.")
 
     def increment_retries(self):
         self.no_of_retries += 1

@@ -19,3 +19,5 @@ force_release: clean
 
 test:
 	coverage run --source easyjoblite setup.py test
+	coverage html
+	coverage report -m

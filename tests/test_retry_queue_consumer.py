@@ -10,30 +10,28 @@ from mock import patch, Mock
 
 
 class TestRetryQueueConsumer(TestCase):
-    def setUp(self):
+
+    @patch('easyjoblite.consumers.base_rmq_consumer.Connection')
+    def setUp(self, kombu_connection_mock):
+        drain_events = Mock(side_effect=Exception("Test"))
+        drain_events.side_effect = socket.timeout
+        connection_mock = Mock(drain_events=drain_events)
+        kombu_connection_mock.return_value = connection_mock
         self.orchestrator = Orchestrator(rabbitmq_url="test.rabbitmq.com:8000")
+        self.retry_consumer = RetryQueueConsumer(self.orchestrator)
 
     @patch('easyjoblite.consumers.base_rmq_consumer.Connection')
     @patch('easyjoblite.consumers.retry_queue_consumer.Consumer')
     def test__shovel_to_buffer(self, kombu_consumer_mock, kombu_connection_mock):
-        drain_events = Mock(side_effect=Exception("Test"))
-        drain_events.side_effect = socket.timeout
-        connection_mock = Mock(drain_events=drain_events)
+
         consumer_mock = Mock()
-
-        kombu_connection_mock.return_value = connection_mock
         kombu_consumer_mock.return_value = consumer_mock
-
-        retry_consumer = RetryQueueConsumer(self.orchestrator)
 
         from_queue = Mock()
         from_queue.name = "from_queue_1"
         from_queue.exchange.name = "exchange"
 
-        retry_consumer._shovel_to_buffer(from_queue=from_queue)
-
-        # check if channel is called
-        connection_mock.channel.assert_called()
+        self.retry_consumer._shovel_to_buffer(from_queue=from_queue)
 
         # check that consumer is called
         consumer_mock.consume.assert_called()
@@ -47,7 +45,6 @@ class TestRetryQueueConsumer(TestCase):
         job_mock = Mock()
         job_mock.tag = "unknown"
         easy_job_mock.create_from_dict.return_value = job_mock
-        retry_consumer = RetryQueueConsumer(self.orchestrator)
         body = json.dumps({"body": "work body"})
         message = Mock()
         api = "http://test.api.com/test_dest"
@@ -57,7 +54,7 @@ class TestRetryQueueConsumer(TestCase):
         headers.update(job.to_dict())
         message.headers = headers
 
-        retry_consumer._shoveller(body, message)
+        self.retry_consumer._shoveller(body, message)
 
         produce_to_queue_mock.assert_called_with(constants.BUFFER_QUEUE, body, job_mock)
 
@@ -70,7 +67,6 @@ class TestRetryQueueConsumer(TestCase):
         job_mock.no_of_retries = 1
         easy_job_mock.create_from_dict.return_value = job_mock
 
-        retry_consumer = RetryQueueConsumer(self.orchestrator)
         body = json.dumps({"body": "work body"})
         message = Mock()
         api = "http://test.api.com/test_dest"
@@ -81,14 +77,14 @@ class TestRetryQueueConsumer(TestCase):
         message.headers = headers
 
         # when no of retires is less than max then add back to work queue
-        retry_consumer.process_message(body, message)
+        self.retry_consumer.process_message(body, message)
         produce_to_queue_mock.assert_called_with(constants.WORK_QUEUE, body, job_mock)
         message.ack.assert_called()
         message.reset_mock()
 
         # test exception
         produce_to_queue_mock.side_effect = Exception()
-        retry_consumer.process_message(body, message)
+        self.retry_consumer.process_message(body, message)
         message.assert_not_called()
 
         message.reset_mock()
@@ -96,14 +92,14 @@ class TestRetryQueueConsumer(TestCase):
         # when no of retries is more than max retries then add to dead letter queue
         produce_to_queue_mock.side_effect = None
         job_mock.no_of_retries = constants.DEFAULT_MAX_JOB_RETRIES + 1
-        retry_consumer.process_message(body, message)
+        self.retry_consumer.process_message(body, message)
         produce_to_queue_mock.assert_called_with(constants.DEAD_LETTER_QUEUE, body, job_mock)
         message.ack.assert_called()
 
         # test exception
         message.reset_mock()
         produce_to_queue_mock.side_effect = Exception()
-        retry_consumer.process_message(body, message)
+        self.retry_consumer.process_message(body, message)
         message.assert_not_called()
 
     @patch('easyjoblite.consumers.retry_queue_consumer.RetryQueueConsumer._shovel_to_buffer')
@@ -118,9 +114,9 @@ class TestRetryQueueConsumer(TestCase):
         buffer_queue.name = "buffer_queue"
         buffer_queue.exchange.name = "exchange"
 
-        retry_consumer = RetryQueueConsumer(self.orchestrator)
+        self.retry_consumer._should_block = False
 
-        retry_consumer.consume_from_retry_queue(from_queue, buffer_queue, run_loop=False)
+        self.retry_consumer.consume_from_retry_queue(from_queue, buffer_queue)
 
         # check shovel is called
         shovel_mock.assert_called_with(from_queue)

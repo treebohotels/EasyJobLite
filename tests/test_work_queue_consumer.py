@@ -15,8 +15,11 @@ logging.basicConfig()
 
 
 class TestWorkQueueConsumer(TestCase):
-    def setUp(self):
+
+    @patch('easyjoblite.consumers.base_rmq_consumer.Connection')
+    def setUp(self, connection_mock):
         self.orchestrator = Orchestrator(rabbitmq_url="test.rabbitmq.com:8000")
+        self.work_queue_con = work_queue_consumer.WorkQueueConsumer(self.orchestrator)
 
     @patch('easyjoblite.consumers.base_rmq_consumer.BaseRMQConsumer.consume')
     def test_consume_from_work_queue(self, consume):
@@ -24,8 +27,7 @@ class TestWorkQueueConsumer(TestCase):
         from_queue.name = "from_queue_1"
         from_queue.exchange.name = "exchange"
 
-        work_queue_con = work_queue_consumer.WorkQueueConsumer(self.orchestrator)
-        work_queue_con.consume_from_work_queue(from_queue)
+        self.work_queue_con.consume_from_work_queue(from_queue)
 
         consume.assert_called()
 
@@ -43,8 +45,7 @@ class TestWorkQueueConsumer(TestCase):
         headers = {"num_retries": 0, "type": "test"}
         message.headers = headers
 
-        work_queue_con = work_queue_consumer.WorkQueueConsumer(self.orchestrator)
-        work_queue_con._push_message_to_error_queue(body, message, "some error")
+        self.work_queue_con._push_message_to_error_queue(body, message, "some error")
 
         # check is produce to queue is called
         produce_to_queue.assert_called_with(constants.RETRY_QUEUE, body, job_mock)
@@ -52,7 +53,7 @@ class TestWorkQueueConsumer(TestCase):
 
         # check is produce when tried for 2 more times sends it to dead letter queue
         job_mock.no_of_retries = 3
-        work_queue_con._push_message_to_error_queue(body, message, "some error")
+        self.work_queue_con._push_message_to_error_queue(body, message, "some error")
         produce_to_queue.assert_called_with(constants.DEAD_LETTER_QUEUE, body, job_mock)
 
         # when exception is the thrown
@@ -60,7 +61,7 @@ class TestWorkQueueConsumer(TestCase):
         message.headers = headers
         produce_to_queue.side_effect = Exception()
 
-        work_queue_con._push_message_to_error_queue(body, message, "some error")
+        self.work_queue_con._push_message_to_error_queue(body, message, "some error")
 
     @patch('easyjoblite.consumers.base_rmq_consumer.BaseRMQConsumer.produce_to_queue')
     @patch('easyjoblite.consumers.work_queue_consumer.EasyJob')
@@ -78,8 +79,7 @@ class TestWorkQueueConsumer(TestCase):
         headers.update(job.to_dict())
         message.headers = headers
 
-        work_queue_con = work_queue_consumer.WorkQueueConsumer(self.orchestrator)
-        work_queue_con._push_msg_to_dlq(body, message, "some error")
+        self.work_queue_con._push_msg_to_dlq(body, message, "some error")
 
         job_mock.add_error.assert_called_with("some error")
         produce_to_queue.assert_called_with(constants.DEAD_LETTER_QUEUE, body, job_mock)
@@ -105,8 +105,8 @@ class TestWorkQueueConsumer(TestCase):
         headers = {}
         headers.update(job.to_dict())
         message.headers = headers
-        work_queue_con = work_queue_consumer.WorkQueueConsumer(self.orchestrator)
-        work_queue_con.process_message(body, message)
+
+        self.work_queue_con.process_message(body, message)
 
         data_body = {'tag': 'unknown', 'data': body, 'job_id': job.id}
 
@@ -118,13 +118,13 @@ class TestWorkQueueConsumer(TestCase):
         # then the job will be added to be dlq
         response.status_code = 410
         response.text = "big error"
-        work_queue_con.process_message(body, message)
+        self.work_queue_con.process_message(body, message)
         push_dlq_mock.assert_called_with(body=body, message=message, err_msg=response.text)
 
         # when the status code is 5XX then add to the error queue
         response.status_code = 520
         response.text = "big error"
-        work_queue_con.process_message(body, message)
+        self.work_queue_con.process_message(body, message)
         push_retry_mock.assert_called_with(body, message, response.text)
 
         # test local flow
@@ -139,7 +139,7 @@ class TestWorkQueueConsumer(TestCase):
         headers.update(job.to_dict())
         message.headers = headers
         test_class.TestClass.module_function_called = False
-        work_queue_con.process_message(body, message)
+        self.work_queue_con.process_message(body, message)
         self.assertEqual(test_class.TestClass.module_function_called, True)
 
         # test with string function
@@ -150,7 +150,7 @@ class TestWorkQueueConsumer(TestCase):
         headers.update(job.to_dict())
         message.headers = headers
         test_class.TestClass.module_function_called = False
-        work_queue_con.process_message(body, message)
+        self.work_queue_con.process_message(body, message)
         self.assertEqual(test_class.TestClass.module_function_called, True)
 
         # test with instance function
@@ -162,7 +162,7 @@ class TestWorkQueueConsumer(TestCase):
         headers.update(job.to_dict())
         message.headers = headers
         test_class.TestClass.class_function_called = False
-        work_queue_con.process_message(body, message)
+        self.work_queue_con.process_message(body, message)
         self.assertEqual(test_class.TestClass.class_function_called, True)
 
         # test with instance class
@@ -173,5 +173,5 @@ class TestWorkQueueConsumer(TestCase):
         headers.update(job.to_dict())
         message.headers = headers
         test_class.TestClass.class_instance_called = False
-        work_queue_con.process_message(body, message)
+        self.work_queue_con.process_message(body, message)
         self.assertEqual(test_class.TestClass.class_instance_called, True)

@@ -34,10 +34,24 @@ class DeadLetterQueueConsumer(BaseRMQConsumer):
             if response.status_code != 200:
                 logger.error("Failed to notify with status code: {} with message: {}".format(response.status_code,
                                                                                              response.message))
-
+                self.log_to_file(response, job, body)
         except Exception as e:
             traceback.print_exc()
             err_msg = "Notification Failed for job {}".format(body)
             logger.error(err_msg)
 
         message.ack()
+
+    def log_to_file(self, response, job, data):
+        """
+        log the data to the dl queue error log file
+        :param response: the response to be logged
+        :param job: job to be logged
+        :param data: data to be logged
+        :return: 
+        """
+        response_dict = {"job": job.to_dict(), "data": data, "response": response.__dict__}
+        log_file = open(self._orchestrator.get_config().dead_message_log_file, "w")
+        log_file.write(str(response_dict))
+        log_file.write("\n")
+        log_file.close()

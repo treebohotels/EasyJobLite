@@ -20,9 +20,8 @@ class RetryQueueConsumer(BaseRMQConsumer):
     IMP NOTE: sleeps for 15 mins between recurrent activity (as mentioned above)
     """
 
-    def consume_from_retry_queue(self, queue, buffer_queue, run_loop=True):
+    def consume_from_retry_queue(self, queue, buffer_queue):
         logger = logging.getLogger(self.__class__.__name__)
-
         while True:
             # first shovel all messages from error-queue to buffer queue
             self._shovel_to_buffer(queue)
@@ -35,7 +34,7 @@ class RetryQueueConsumer(BaseRMQConsumer):
             logger.info("sleeping for {m} mins ...".format(m=self.get_config().eqc_sleep_duration))
             time.sleep(self.get_config().eqc_sleep_duration * 60)
 
-            if not run_loop:
+            if not self.should_run_loop():
                 break
 
     def process_message(self, body, message):
@@ -131,3 +130,4 @@ class RetryQueueConsumer(BaseRMQConsumer):
 
         # disconnect
         queue_consumer.cancel()
+

@@ -30,7 +30,7 @@ WORK_QUEUE = "work"
 BUFFER_QUEUE = "buffer"
 
 # Default configs
-DEFAULT_RMQ_URL = "amqp://b2cadmin:b2cadmin@localhost/b2c"
+DEFAULT_RMQ_URL = 'amqp://guest:guest@localhost:5672//'
 DEFAULT_ASYNC_TIMEOUT = 120
 DEFAULT_MAX_JOB_RETRIES = 3
 DEFAULT_ERROR_Q_CON_SLEEP_DURATION = 15
@@ -41,6 +41,8 @@ DEFAULT_DLQ_CONSUMER_COUNT = 3
 DEFAULT_IMPORT_PATHS = '.'
 DEFAULT_PID_FILE_LOCATION = "/var/tmp/easyjoblite.pid"
 DEFAULT_LOG_FILE_PATH = "/var/tmp/easyjoblite.log"
+DEFAULT_DL_LOG_FILE = "/var/tmp/easyjoblite_dl.log"
+DEFAULT_CONFIG_FILE = "/var/tmp/easyjoblite.yaml"
 
 BASE_COMMAND = "nohup easyjoblite"
 STOP_TYPE_ALL = "all"

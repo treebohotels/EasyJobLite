@@ -19,7 +19,8 @@ setup(
     install_requires=[
         'kombu==3.0.35',
         'importlib',
-        'click>=3.0.0'
+        'click>=3.0.0',
+        'PyYaml'
     ],
     url='',
     license='BSD',

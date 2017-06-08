@@ -93,31 +93,7 @@ class TestOrchestrator(TestCase):
     @patch("easyjoblite.orchestrator.time.sleep")
     @patch("easyjoblite.orchestrator.Connection")
     @patch("easyjoblite.orchestrator.Exchange")
-    @patch("easyjoblite.orchestrator.Producer")
-    def test_enqueue(self, producer_mock, exchange_mock, connection_mock, sleep_mock):
-        # create a basic orchestrator
-        orchestrator = Orchestrator(rabbitmq_url="test.rabbitmq.com:8000")
-        producer_mk = Mock()
-        producer_mock.return_value = producer_mk
-        body = json.dumps({"body": "work body"})
-        api = "http://test.api.com/test_dest"
-        api_request_headers = {"title": "Yippi"}
-        job = EasyJob.create(api, constants.API_REMOTE, api_request_headers=api_request_headers)
-
-        with self.assertRaises(EasyJobServiceNotStarted) as e:
-            orchestrator.enqueue("test", job, body)
-
-        orchestrator.setup_entities()
-
-        orchestrator.enqueue("test", job, body)
-        producer_mk.publish.assert_called_with(body=body, headers=job.to_dict(),
-                                               routing_key="test.unknown",
-                                               delivery_mode=PERSISTENT_DELIVERY_MODE)
-
-    @patch("easyjoblite.orchestrator.time.sleep")
-    @patch("easyjoblite.orchestrator.Connection")
-    @patch("easyjoblite.orchestrator.Exchange")
-    @patch("easyjoblite.orchestrator.Orchestrator.enqueue")
+    @patch("easyjoblite.orchestrator.enqueue")
     @patch("easyjoblite.orchestrator.EasyJob")
     def test_enqueue_job(self, easy_job_mock, enqueue_mock, exchange_mock, connection_mock, sleep_mock):
         # create a basic orchestrator
@@ -135,4 +111,4 @@ class TestOrchestrator(TestCase):
         orchestrator.setup_entities()
 
         orchestrator.enqueue_job(api, constants.API_REMOTE, api_request_headers=api_request_headers, data=body)
-        enqueue_mock.assert_called_with("work", job_mock, body)
+        enqueue_mock.assert_called_with(orchestrator._producer, "work", job_mock, body)

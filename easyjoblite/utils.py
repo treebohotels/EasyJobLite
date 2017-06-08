@@ -5,6 +5,7 @@ import signal
 import sys
 
 import os
+from kombu.entity import PERSISTENT_DELIVERY_MODE
 
 
 def as_text(v):
@@ -84,3 +85,20 @@ def update_import_paths(import_paths):
     """
     if import_paths:
         sys.path = import_paths.split(':') + sys.path
+
+
+def enqueue(producer, queue_type, job, body):
+    """
+    enque a job in the given queue
+    :param producer: the producer to be used
+    :param queue_type: type of queue (worker, retry, dead)
+    :param job: the job object
+    :param body: the body payload of the job
+    :return: none
+    """
+    routing_key = "{type}.{tag}".format(type=queue_type, tag=job.tag)
+    headers = job.to_dict()
+    producer.publish(body=body,
+                     headers=headers,
+                     routing_key=routing_key,
+                     delivery_mode=PERSISTENT_DELIVERY_MODE)

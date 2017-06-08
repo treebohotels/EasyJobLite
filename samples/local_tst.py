@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from easyjoblite.response import EasyResponse
 
 def local_method_job_failed(data):
     '''
@@ -8,10 +9,10 @@ def local_method_job_failed(data):
     '''
     data_str = "Local method job recieved in local_method_job_failed with data: " + str(data)
     print data_str
-    fo = open("job.txt", "wb")
+    fo = open("job.txt", "a")
     fo.write(data_str)
     fo.close()
-    return {"status_code": 500}
+    return EasyResponse(500, "opps")
 
 
 def got_error(data):

@@ -12,14 +12,13 @@ from easyjoblite import state
 from easyjoblite.consumers.dead_letter_queue_consumer import DeadLetterQueueConsumer
 from easyjoblite.consumers.retry_queue_consumer import RetryQueueConsumer
 from easyjoblite.consumers.work_queue_consumer import WorkQueueConsumer
-from easyjoblite.utils import update_import_paths
+from easyjoblite.utils import update_import_paths, enqueue
 from exception import EasyJobServiceNotStarted
 from job import EasyJob
 from kombu import Connection
 from kombu import Exchange
 from kombu import Producer
 from kombu import Queue
-from kombu.entity import PERSISTENT_DELIVERY_MODE
 
 
 class Orchestrator(object):
@@ -35,6 +34,7 @@ class Orchestrator(object):
 
         self.set_config(**kwargs)
         self._service_inited = False
+        self._booking_exchange = None
 
     def validate_init(self):
         if not self._service_inited:
@@ -47,6 +47,9 @@ class Orchestrator(object):
     def get_config(self):
         return self._config
 
+    def get_exchange(self):
+        return self._booking_exchange
+
     def update_consumer_pid(self, type, pid):
         service_state = state.ServiceState(self.get_config().pid_file_path)
         service_state.add_worker_pid(type, pid)
@@ -57,30 +60,8 @@ class Orchestrator(object):
         :param kwargs: contains the dict with all key values
         :return: 
         """
-        if 'async_timeout' in kwargs:
-            self._config.async_timeout = kwargs['async_timeout']
-
-        if 'max_retries' in kwargs:
-            self._config.max_retries = kwargs['max_retries']
-
-        if 'eqc_sleep_duration' in kwargs:
-            self._config.eqc_sleep_duration = kwargs['eqc_sleep_duration']
-
-        if 'import_paths' in kwargs:
-            self._config.import_paths = kwargs['import_paths']
-            update_import_paths(self._config.import_paths)
-
-        if 'max_worker_count' in kwargs:
-            self._config.max_worker_count = kwargs['max_worker_count']
-
-        if 'default_worker_count' in kwargs:
-            self._config.default_worker_count = kwargs['default_worker_count']
-
-        if 'default_retry_consumer_count' in kwargs:
-            self._config.default_retry_consumer_count = kwargs['default_retry_consumer_count']
-
-        if 'default_dl_consumer_count' in kwargs:
-            self._config.default_dl_consumer_count = kwargs['default_dl_consumer_count']
+        self._config.set_config(**kwargs)
+        update_import_paths(self._config.import_paths)
 
     def start_service(self, is_detached=False):
         """
@@ -292,22 +273,6 @@ class Orchestrator(object):
                              content_type=content_type, notification_handler=notification_handler)
 
         # enqueue
-        self.enqueue(constants.WORK_QUEUE, job, data)
+        enqueue(self._producer, constants.WORK_QUEUE, job, data)
 
         return job.id
-
-    def enqueue(self, queue_type, job, body):
-        """
-        enque a job in the given queue
-        :param queue_type: type of queue (worker, retry, dead)
-        :param job: the job object
-        :param body: the body payload of the job
-        :return: none
-        """
-        self.validate_init()
-        routing_key = "{type}.{tag}".format(type=queue_type, tag=job.tag)
-        headers = job.to_dict()
-        self._producer.publish(body=body,
-                               headers=headers,
-                               routing_key=routing_key,
-                               delivery_mode=PERSISTENT_DELIVERY_MODE)

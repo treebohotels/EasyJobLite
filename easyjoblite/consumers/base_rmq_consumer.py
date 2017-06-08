@@ -3,9 +3,12 @@
 import logging
 import socket
 import traceback
+import signal
 
 from kombu import Connection
 from kombu import Consumer
+from kombu import Producer
+from easyjoblite.utils import enqueue
 
 
 class BaseRMQConsumer(object):
@@ -24,6 +27,12 @@ class BaseRMQConsumer(object):
             # todo: do we need to make confirm_publish configurable?
             self._conn = Connection(self.get_config().rabbitmq_url,
                                     transport_options={'confirm_publish': True})
+
+            # setup producer to push to error and dlqs
+            self._producer = Producer(channel=self._conn.channel(),
+                                      exchange=self._orchestrator.get_exchange())
+            signal.signal(signal.SIGTERM, self.signal_term_handler)
+            self._should_block = True
 
         except Exception as e:
             traceback.print_exc()
@@ -56,7 +65,7 @@ class BaseRMQConsumer(object):
             # drain the events into the consumer
             logger.info("starting to consume messages from {exchg}:{q}".format(exchg=from_queue.exchange.name,
                                                                                q=from_queue.name))
-            while True:
+            while self.should_run_loop():
                 if blocking:
                     self._conn.drain_events()
 
@@ -100,7 +109,15 @@ class BaseRMQConsumer(object):
         raise NotImplementedError("'{n}' needs to implement process_message(...)".format(n=self.__class__.__name__))
 
     def produce_to_queue(self, type, body, job):
-        self._orchestrator.enqueue(type, job, body)
+        enqueue(self._producer, type, job, body)
 
     def get_config(self):
         return self._orchestrator.get_config()
+
+    def should_run_loop(self):
+        return self._should_block
+
+    def signal_term_handler(self, signum, frame):
+        logger = logging.getLogger(self.__class__.__name__)
+        logger.debug("SIGTERM found so stopping worker")
+        self._should_block = False

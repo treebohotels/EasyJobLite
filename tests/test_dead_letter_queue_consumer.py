@@ -4,21 +4,25 @@ from unittest import TestCase
 from easyjoblite import constants
 from easyjoblite.consumers.dead_letter_queue_consumer import DeadLetterQueueConsumer
 from easyjoblite.orchestrator import Orchestrator
+from easyjoblite.response import EasyResponse
 from mock import patch, Mock
 
 
 class TestDeadLetterQueueConsumer(TestCase):
-    def setUp(self):
-        self.orchestrator = Orchestrator(rabbitmq_url="test.rabbitmq.com:8000")
 
+    @patch('easyjoblite.consumers.base_rmq_consumer.Connection')
+    def setUp(self, connection):
+        self.orchestrator = Orchestrator(rabbitmq_url="test.rabbitmq.com:8000")
+        self.dead_letter_con = DeadLetterQueueConsumer(self.orchestrator)
+
+    @patch('easyjoblite.consumers.base_rmq_consumer.Producer')
     @patch('easyjoblite.consumers.base_rmq_consumer.BaseRMQConsumer.consume')
-    def test_consume_from_dead_letter_queue(self, consume):
+    def test_consume_from_dead_letter_queue(self, consume, producer):
         from_queue = Mock()
         from_queue.name = "from_queue_1"
         from_queue.exchange.name = "exchange"
 
-        dead_letter_con = DeadLetterQueueConsumer(self.orchestrator)
-        dead_letter_con.consume_from_dead_letter_queue(from_queue)
+        self.dead_letter_con.consume_from_dead_letter_queue(from_queue)
 
         consume.assert_called()
 
@@ -42,7 +46,14 @@ class TestDeadLetterQueueConsumer(TestCase):
         headers = {}
         message.headers = headers
 
-        dead_letter_con = DeadLetterQueueConsumer(self.orchestrator)
-        dead_letter_con.process_message(body, message)
+        job_mock.notify_error.return_value = EasyResponse(200, "Some sucess", {"Test": "test"})
+
+        self.dead_letter_con.process_message(body, message)
 
         job_mock.notify_error.assert_called_with(body, constants.DEFAULT_ASYNC_TIMEOUT)
+
+        job_mock.notify_error.return_value = EasyResponse(400, "Some failure", {"Test": "test"})
+
+        self.dead_letter_con.process_message(body, message)
+
+

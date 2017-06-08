@@ -38,15 +38,30 @@ def main():
 @click.option("--eqc_sleep_duration",
               help="the sleep duration for the retry queue",
               default=constants.DEFAULT_ERROR_Q_CON_SLEEP_DURATION)
-def start(type, url, import_paths, max_retries, asyc_timeout, eqc_sleep_duration):
+@click.option("--workers_log_file_path",
+              help="the log file for all the workers",
+              default=constants.DEFAULT_LOG_FILE_PATH)
+@click.option("--dead_message_log_file",
+              help="the default dead letter log file",
+              default=constants.DEFAULT_DL_LOG_FILE)
+@click.option("--config_file",
+              help="the config file path",
+              default=constants.DEFAULT_CONFIG_FILE)
+def start(type, url, import_paths, max_retries, asyc_timeout, eqc_sleep_duration, workers_log_file_path,
+          dead_message_log_file, config_file):
     """command to start a worker"""
     # todo: get rabbitmq config params from command line (e.g. user, passwd, host separately)
     logger = logging.getLogger("easyjobcli:start")
 
     orst = orchestrator.Orchestrator(rabbitmq_url=url,
                                      async_timeout=int(asyc_timeout),
+                                     import_paths=import_paths,
                                      max_retries=int(max_retries),
-                                     eqc_sleep_duration=int(eqc_sleep_duration))
+                                     eqc_sleep_duration=int(eqc_sleep_duration),
+                                     workers_log_file_path=workers_log_file_path,
+                                     dead_message_log_file=dead_message_log_file,
+                                     config_file=config_file
+                                     )
 
     pid = os.getpid()
 
