@@ -22,7 +22,6 @@ from kombu import Queue
 
 
 class Orchestrator(object):
-
     def __init__(self, **kwargs):
         self.consumer_creater_map = {
             constants.WORK_QUEUE: self.create_work_cunsumer,

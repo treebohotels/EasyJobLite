@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 
-import constants
 import logging
-import yaml
 import traceback
+
+import constants
+import yaml
 
 
 class Configuration(object):

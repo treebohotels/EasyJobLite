@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 
 import logging
+import signal
 import socket
 import traceback
-import signal
 
+from easyjoblite.utils import enqueue
 from kombu import Connection
 from kombu import Consumer
 from kombu import Producer
-from easyjoblite.utils import enqueue
 
 
 class BaseRMQConsumer(object):

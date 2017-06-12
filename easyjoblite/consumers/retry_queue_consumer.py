@@ -130,4 +130,3 @@ class RetryQueueConsumer(BaseRMQConsumer):
 
         # disconnect
         queue_consumer.cancel()
-
