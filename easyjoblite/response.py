@@ -4,7 +4,7 @@
 class EasyResponse(object):
     """ Response object for the job run"""
 
-    def __init__(self, status_code, response_message=None, response_data=None):
+    def __init__(self, status_code, message=None, data=None):
         self.status_code = status_code
-        self.message = response_message
-        self.data = response_data
+        self.message = message
+        self.data = data

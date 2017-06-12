@@ -45,7 +45,7 @@ class TestWorkQueueConsumer(TestCase):
         headers = {"num_retries": 0, "type": "test"}
         message.headers = headers
 
-        self.work_queue_con._push_message_to_error_queue(body, message, "some error")
+        self.work_queue_con._push_message_to_error_queue(body, message, job_mock)
 
         # check is produce to queue is called
         produce_to_queue.assert_called_with(constants.RETRY_QUEUE, body, job_mock)
@@ -53,7 +53,7 @@ class TestWorkQueueConsumer(TestCase):
 
         # check is produce when tried for 2 more times sends it to dead letter queue
         job_mock.no_of_retries = 3
-        self.work_queue_con._push_message_to_error_queue(body, message, "some error")
+        self.work_queue_con._push_message_to_error_queue(body, message, job_mock)
         produce_to_queue.assert_called_with(constants.DEAD_LETTER_QUEUE, body, job_mock)
 
         # when exception is the thrown
@@ -61,7 +61,7 @@ class TestWorkQueueConsumer(TestCase):
         message.headers = headers
         produce_to_queue.side_effect = Exception()
 
-        self.work_queue_con._push_message_to_error_queue(body, message, "some error")
+        self.work_queue_con._push_message_to_error_queue(body, message, job_mock)
 
     @patch('easyjoblite.consumers.base_rmq_consumer.BaseRMQConsumer.produce_to_queue')
     @patch('easyjoblite.consumers.work_queue_consumer.EasyJob')
@@ -79,16 +79,15 @@ class TestWorkQueueConsumer(TestCase):
         headers.update(job.to_dict())
         message.headers = headers
 
-        self.work_queue_con._push_msg_to_dlq(body, message, "some error")
+        self.work_queue_con._push_msg_to_dlq(body, message, job)
 
-        job_mock.add_error.assert_called_with("some error")
-        produce_to_queue.assert_called_with(constants.DEAD_LETTER_QUEUE, body, job_mock)
+        produce_to_queue.assert_called_with(constants.DEAD_LETTER_QUEUE, body, job)
 
     @patch("easyjoblite.consumers.work_queue_consumer.WorkQueueConsumer._push_message_to_error_queue")
     @patch("easyjoblite.consumers.work_queue_consumer.WorkQueueConsumer._push_msg_to_dlq")
     @patch("easyjoblite.constants.remote_call_type")
     def test_process_message(self, remote_call_type_mock, push_dlq_mock, push_retry_mock):
-        remote_call_mock = Mock()
+
         post = Mock()
         response = Mock()
         response.status_code = 200
@@ -96,7 +95,6 @@ class TestWorkQueueConsumer(TestCase):
         remote_call_type_mock.get.return_value = post
 
         # Test remote job flow
-
         body = json.dumps({"body": "work body"})
         message = Mock()
         api = "http://test.api.com/test_dest"
@@ -119,13 +117,13 @@ class TestWorkQueueConsumer(TestCase):
         response.status_code = 410
         response.text = "big error"
         self.work_queue_con.process_message(body, message)
-        push_dlq_mock.assert_called_with(body=body, message=message, err_msg=response.text)
+        push_dlq_mock.assert_called()
 
         # when the status code is 5XX then add to the error queue
         response.status_code = 520
         response.text = "big error"
         self.work_queue_con.process_message(body, message)
-        push_retry_mock.assert_called_with(body, message, response.text)
+        push_retry_mock.assert_called()
 
         # test local flow
 

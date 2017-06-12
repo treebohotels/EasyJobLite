@@ -62,27 +62,27 @@ class EasyApi(object):
         return pickle.loads(self._data)
 
     @classmethod
-    def create_from_dict(cls, dict):
-        if not dict:
+    def create_from_dict(cls, dict_data):
+        if not dict_data:
             return None
 
         easy_api = cls()
-        if "type" in dict:
-            easy_api.type = dict["type"]
-        if "data" in dict:
-            easy_api._data = dict["data"]
+        if "type" in dict_data:
+            easy_api.type = dict_data["type"]
+        if "data" in dict_data:
+            easy_api._data = dict_data["data"]
             easy_api._func_name, easy_api._instance = easy_api.load_data()
-        if "api_request_headers" in dict:
-            easy_api.api_request_headers = dict["api_request_headers"]
-        if "remote_call_type" in dict:
-            easy_api.remote_call_type = dict["remote_call_type"]
-        if "content_type" in dict:
-            easy_api.content_type = dict["content_type"]
+        if "api_request_headers" in dict_data:
+            easy_api.api_request_headers = dict_data["api_request_headers"]
+        if "remote_call_type" in dict_data:
+            easy_api.remote_call_type = dict_data["remote_call_type"]
+        if "content_type" in dict_data:
+            easy_api.content_type = dict_data["content_type"]
 
         return easy_api
 
     def to_dict(self):
-        dict = {
+        dict_data = {
             "type": self.type,
             "instance": pickle.dumps(self._instance, protocol=0),
             "data": self._data,
@@ -90,7 +90,7 @@ class EasyApi(object):
             "remote_call_type": self.remote_call_type,
             "content_type": self.content_type
         }
-        return dict
+        return dict_data
 
     @property
     def api(self):
@@ -113,7 +113,7 @@ class EasyApi(object):
         request_call_type = constants.remote_call_type.get(call_type)
         request_headers = self.api_request_headers
         request_headers['Content-type'] = self.content_type
-        if (call_type == 'post'):
+        if call_type == 'post':
             response = request_call_type(api, data=data, timeout=async_timeout,
                                          headers=request_headers)
         else:
@@ -152,7 +152,10 @@ class EasyApi(object):
                         ret_val.status_code = response.status_code
                     if hasattr(response, 'message'):
                         ret_val.message = response.message
-                    ret_val.data = response
+                    if hasattr(response, 'data'):
+                        ret_val.data = response.data
+                    else:
+                        ret_val.data = response
                 logger.info("Calling api {api} with {data}".format(api=self.api, data=data))
         except Exception as e:
             traceback.print_exc()
@@ -160,4 +163,5 @@ class EasyApi(object):
             logger.error(error_message)
             ret_val.status_code = 400
             ret_val.message = error_message
+            ret_val.data = e.__dict__
         return ret_val

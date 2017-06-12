@@ -1,3 +1,7 @@
+### 0.5.1:
+(June 12, 2017)
+
+- handling response object from api call.
 
 ### 0.5.0:
 (June 08, 2017)
