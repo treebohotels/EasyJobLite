@@ -1,3 +1,8 @@
+### 0.5.2:
+(June 14, 2017)
+
+- fixed a minor bug in handle response
+
 ### 0.5.1:
 (June 12, 2017)
 
