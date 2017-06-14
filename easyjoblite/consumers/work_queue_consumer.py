@@ -63,7 +63,7 @@ class WorkQueueConsumer(BaseRMQConsumer):
 
                 if response.status_code >= 500:
                     # we have a retry-able failure
-                    self._push_message_to_error_queue(body, message, response.message)
+                    self._push_message_to_error_queue(body=body, message=message, job=job)
 
                 else:
                     # push not retry-able error to dlq
@@ -98,7 +98,7 @@ class WorkQueueConsumer(BaseRMQConsumer):
             logger.info("Moving raw item to DLQ for notification and manual intervention")
             job = EasyJob()
             job.data = message.headers
-            job.add_error(EasyResponse(400, err_msg))
+            job.add_error(EasyResponse(400, err_msg).__dict__)
             self.produce_to_queue(constants.DEAD_LETTER_QUEUE, body, job)
 
         except Exception as e:
@@ -150,4 +150,4 @@ class WorkQueueConsumer(BaseRMQConsumer):
         else:
             er_message = "Max retries exceeded, moving work-item to DLQ for manual intervention."
             logger.info(er_message)
-            self._push_msg_to_dlq(body, message, job)
+            self._push_msg_to_dlq(body=body, message=message, job=job)
