@@ -5,6 +5,7 @@ import traceback
 
 import constants
 import yaml
+from easyjoblite.utils import update_import_paths
 
 
 class Configuration(object):
@@ -55,6 +56,7 @@ class Configuration(object):
         self.workers_log_file_path = constants.DEFAULT_LOG_FILE_PATH
         self.dead_message_log_file = constants.DEFAULT_DL_LOG_FILE
         self.config_file = constants.DEFAULT_CONFIG_FILE
+        update_import_paths(self.import_paths)
 
     def set_config(self, **kwargs):
         """
@@ -76,6 +78,7 @@ class Configuration(object):
 
         if 'import_paths' in kwargs:
             self.import_paths = kwargs['import_paths']
+            update_import_paths(self.import_paths)
 
         if 'max_worker_count' in kwargs:
             self.max_worker_count = kwargs['max_worker_count']

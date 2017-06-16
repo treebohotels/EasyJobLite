@@ -12,7 +12,7 @@ from easyjoblite import state
 from easyjoblite.consumers.dead_letter_queue_consumer import DeadLetterQueueConsumer
 from easyjoblite.consumers.retry_queue_consumer import RetryQueueConsumer
 from easyjoblite.consumers.work_queue_consumer import WorkQueueConsumer
-from easyjoblite.utils import update_import_paths, enqueue
+from easyjoblite.utils import enqueue
 from exception import EasyJobServiceNotStarted
 from job import EasyJob
 from kombu import Connection
@@ -29,9 +29,8 @@ class Orchestrator(object):
             constants.DEAD_LETTER_QUEUE: self.create_dead_letter_queue_consumer
         }
 
-        self._config = Configuration(rabbitmq_url=kwargs['rabbitmq_url'])
+        self._config = Configuration(**kwargs)
 
-        self.set_config(**kwargs)
         self._service_inited = False
         self._booking_exchange = None
 
@@ -60,7 +59,6 @@ class Orchestrator(object):
         :return: 
         """
         self._config.set_config(**kwargs)
-        update_import_paths(self._config.import_paths)
 
     def start_service(self, is_detached=False):
         """

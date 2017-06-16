@@ -3,9 +3,9 @@ dead_message_log_file: /var/tmp/easyjoblite_dl.log
 default_dl_consumer_count: 3
 default_retry_consumer_count: 1
 default_worker_count: 3
-eqc_sleep_duration: 15
+eqc_sleep_duration: 5
 import_paths: .
-max_retries: 3
+max_retries: 2
 max_worker_count: 10
 pid_file_path: /var/tmp/easyjoblite.pid
 rabbitmq_url: amqp://guest:guest@localhost:5672//
