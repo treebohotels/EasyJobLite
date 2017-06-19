@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-work-queue consumer for b2b booking-exchange
+cli file for easyjoblite
 """
 
 import logging

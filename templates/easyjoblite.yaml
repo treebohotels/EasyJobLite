@@ -1,3 +1,4 @@
+app_id: DefaultApp
 async_timeout: 120
 dead_message_log_file: /var/tmp/easyjoblite_dl.log
 default_dl_consumer_count: 3

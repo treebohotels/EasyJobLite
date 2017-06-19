@@ -102,22 +102,22 @@ class Orchestrator(object):
             return
 
         # setup exchange
-        self._booking_exchange = Exchange("booking-exchange",
+        self._booking_exchange = Exchange(self._config.get_mq_config(constants.EXCHANGE),
                                           type='topic',
                                           durable=True)
 
         # setup durable queues
-        self.work_queue = Queue("work-queue",
+        self.work_queue = Queue(self._config.get_mq_config(constants.EXCHANGE),
                                 exchange=self._booking_exchange,
                                 routing_key=constants.WORK_QUEUE + ".#",
                                 durable=True)
 
-        self.retry_queue = Queue("retry-queue",
+        self.retry_queue = Queue(self._config.get_mq_config(constants.RETRY_QUEUE),
                                  exchange=self._booking_exchange,
                                  routing_key=constants.RETRY_QUEUE + ".#",
                                  durable=True)
 
-        self.dlq_queue = Queue("dead-letter-queue",
+        self.dlq_queue = Queue(self._config.get_mq_config(constants.DEAD_LETTER_QUEUE),
                                exchange=self._booking_exchange,
                                routing_key=constants.DEAD_LETTER_QUEUE + ".#",
                                durable=True)
@@ -126,7 +126,7 @@ class Orchestrator(object):
         # this is to handle retry loop which may cause between retry-queue and work-queue.
         # todo: Need to implement an alternive as this has a copy overhead
         #  which can be significant when the error queue is large
-        self.buffer_queue = Queue(name='buffer-queue',
+        self.buffer_queue = Queue(name=self._config.get_mq_config(constants.BUFFER_QUEUE),
                                   exchange=self._booking_exchange,
                                   routing_key='buffer.#',
                                   durable=True)

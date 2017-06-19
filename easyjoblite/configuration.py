@@ -15,6 +15,7 @@ class Configuration(object):
 
     def __init__(self, **kwargs):
         """
+        :param app_id: the application specific unique name.
         :param rabbitmq_url: where it the rabbitmq server running?
         :param max_retries: max retries before a message moves to DLQ
         :param async_timeout: wait these many seconds before we timeout async reqs
@@ -43,6 +44,7 @@ class Configuration(object):
         self.set_config(**kwargs)
 
     def load_with_defaults(self):
+        self.app_id = constants.DEFAULT_APP_ID
         self.rabbitmq_url = constants.DEFAULT_RMQ_URL
         self.max_retries = constants.DEFAULT_MAX_JOB_RETRIES
         self.async_timeout = constants.DEFAULT_ASYNC_TIMEOUT
@@ -64,6 +66,9 @@ class Configuration(object):
         :param kwargs: contains the dict with all key values
         :return: 
         """
+        if 'app_id' in kwargs:
+            self.app_id = kwargs['app_id']
+
         if 'rabbitmq_url' in kwargs:
             self.rabbitmq_url = kwargs['rabbitmq_url']
 
@@ -116,6 +121,7 @@ class Configuration(object):
     def dump_to_file(self, file_path):
         logger = logging.getLogger(self.__class__.__name__)
         conf_dict = {
+            "app_id": self.app_id,
             "rabbitmq_url": self.rabbitmq_url,
             "max_retries": self.max_retries,
             "async_timeout": self.async_timeout,
@@ -137,3 +143,12 @@ class Configuration(object):
         except Exception as e:
             traceback.print_exc()
             logger.error("Unable to dump config file: {0} with exception {1}".format(str(file_path), e.message))
+
+    def get_mq_config(self, conf_type):
+        """
+        return the rabbitmq config type
+        :param conf_type: type like EXCHANGE, WORK_QUEUE, RETRY_QUEUE etc
+        :return: 
+        """
+        return self.app_id + constants.rabbit_mq_prefix[conf_type]
+

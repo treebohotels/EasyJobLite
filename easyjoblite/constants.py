@@ -24,12 +24,24 @@ errors_to_be_notified = {
 }
 
 # Queue Types
+EXCHANGE = "exchange"
 DEAD_LETTER_QUEUE = "dead"
 RETRY_QUEUE = "retry"
 WORK_QUEUE = "work"
 BUFFER_QUEUE = "buffer"
 
+
+# rabbit mq exchange and queue prefix
+rabbit_mq_prefix = {
+    EXCHANGE: "-booking-exchange",
+    WORK_QUEUE: "-work-queue",
+    DEAD_LETTER_QUEUE: "-dead-letter-queue",
+    RETRY_QUEUE: "-retry-queue",
+    BUFFER_QUEUE: "-buffer-queue",
+}
+
 # Default configs
+DEFAULT_APP_ID = "DefaultApp"
 DEFAULT_RMQ_URL = 'amqp://guest:guest@localhost:5672//'
 DEFAULT_ASYNC_TIMEOUT = 120
 DEFAULT_MAX_JOB_RETRIES = 3

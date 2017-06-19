@@ -33,7 +33,8 @@ class TestOrchestrator(TestCase):
         orchestrator = Orchestrator(rabbitmq_url="test.rabbitmq.com:8000")
 
         orchestrator.setup_entities()
-        exchange_mock.assert_called_with("booking-exchange", type='topic', durable=True)
+        exchange_mock.assert_called_with(orchestrator.get_config().get_mq_config(constants.EXCHANGE), type='topic',
+                                         durable=True)
 
         connection_mock.assert_called_with("test.rabbitmq.com:8000", transport_options={'confirm_publish': True})
 
