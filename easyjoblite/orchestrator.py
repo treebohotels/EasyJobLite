@@ -107,7 +107,7 @@ class Orchestrator(object):
                                           durable=True)
 
         # setup durable queues
-        self.work_queue = Queue(self._config.get_mq_config(constants.EXCHANGE),
+        self.work_queue = Queue(self._config.get_mq_config(constants.WORK_QUEUE),
                                 exchange=self._booking_exchange,
                                 routing_key=constants.WORK_QUEUE + ".#",
                                 durable=True)

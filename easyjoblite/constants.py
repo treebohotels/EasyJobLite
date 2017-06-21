@@ -33,7 +33,7 @@ BUFFER_QUEUE = "buffer"
 
 # rabbit mq exchange and queue prefix
 rabbit_mq_prefix = {
-    EXCHANGE: "-booking-exchange",
+    EXCHANGE: "-ejl-exchange",
     WORK_QUEUE: "-work-queue",
     DEAD_LETTER_QUEUE: "-dead-letter-queue",
     RETRY_QUEUE: "-retry-queue",
