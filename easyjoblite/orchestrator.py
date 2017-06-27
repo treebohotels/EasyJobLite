@@ -65,7 +65,7 @@ class Orchestrator(object):
         """
         self._config.set_config(**kwargs)
 
-    def start_service(self, is_detached=False):
+    def start_service(self, is_detached=False, run_health_check=True):
         """
         starts the service
         :return: 
@@ -77,8 +77,9 @@ class Orchestrator(object):
         self.create_all_consumers(is_detached)
 
         # start health check
-        self._run_healthcheck = True
-        self.run_health_check()
+        if run_health_check:
+            self._run_healthcheck = True
+            self.run_health_check()
 
     def create_all_consumers(self, is_detached=False):
         """

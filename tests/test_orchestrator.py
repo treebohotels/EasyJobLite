@@ -45,7 +45,7 @@ class TestOrchestrator(TestCase):
         # create a basic orchestrator
         orchestrator = Orchestrator(rabbitmq_url="test.rabbitmq.com:8000")
 
-        orchestrator.start_service()
+        orchestrator.start_service(run_health_check=False)
         _setup_entities_mock.assert_called()
         create_cunsumer_mock.assert_called()
 
@@ -75,7 +75,7 @@ class TestOrchestrator(TestCase):
         with self.assertRaises(EasyJobServiceNotStarted) as e:
             orchestrator.create_dead_letter_queue_consumer()
 
-        orchestrator.start_service()
+        orchestrator.start_service(run_health_check=False)
 
         # test work queue
         orchestrator.create_work_cunsumer()
