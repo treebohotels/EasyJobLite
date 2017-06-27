@@ -29,6 +29,7 @@ class Configuration(object):
         :param workers_log_file_path: the path to log from workers
         :param dead_message_log_file: the path to dump the dead letter messages without a event handler
         :param config_file: the path to store configuration
+        :param health_check_interval: the health check interval when run in orchestrator mode
         """
 
         # first initialize everything with defaults
@@ -58,6 +59,7 @@ class Configuration(object):
         self.workers_log_file_path = constants.DEFAULT_LOG_FILE_PATH
         self.dead_message_log_file = constants.DEFAULT_DL_LOG_FILE
         self.config_file = constants.DEFAULT_CONFIG_FILE
+        self.health_check_interval = constants.DEFAULT_HEALTH_CHECK_INTERVAL
         update_import_paths(self.import_paths)
 
     def set_config(self, **kwargs):
@@ -106,6 +108,9 @@ class Configuration(object):
         if 'config_file' in kwargs:
             self.config_file = kwargs['config_file']
 
+        if 'health_check_interval' in kwargs:
+            self.health_check_interval = kwargs['health_check_interval']
+
     def load_from_file(self, file_path):
         logger = logging.getLogger(self.__class__.__name__)
         try:
@@ -133,7 +138,8 @@ class Configuration(object):
             "import_paths": self.import_paths,
             "pid_file_path": self.pid_file_path,
             "workers_log_file_path": self.workers_log_file_path,
-            "dead_message_log_file": self.dead_message_log_file
+            "dead_message_log_file": self.dead_message_log_file,
+            "health_check_interval": self.health_check_interval
         }
 
         try:

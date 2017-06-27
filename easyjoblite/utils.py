@@ -3,6 +3,7 @@ import errno
 import logging
 import pickle
 import signal
+import traceback
 import sys
 
 import os
@@ -57,25 +58,15 @@ def is_process_running(pid):
     """
     if pid < 0:
         return False
-    if pid == 0:
-        # According to "man 2 kill" PID 0 refers to every process
-        # in the process group of the calling process.
-        # On certain systems 0 is a valid PID but we have no way
-        # to know that in a portable fashion.
-        raise ValueError('invalid PID 0')
     try:
-        os.kill(pid, 0)
-    except OSError as err:
-        if err.errno == errno.ESRCH:
-            # ESRCH == No such process
-            return False
-        elif err.errno == errno.EPERM:
-            # EPERM clearly means there's a process to deny access to
+        ret = os.popen("ps -o pid,stat | grep {} |  grep -v \'Z\' | awk \'{{ print $1}}\'".format(pid)).read()
+
+        if ret and int(ret) == pid:
             return True
-        else:
-            # According to "man 2 kill" possible error values are
-            # (EINVAL, EPERM, ESRCH)
-            raise
+    except Exception as e:
+        traceback.print_exc()
+        logger = logging.getLogger("is_process_running")
+        logger.warning("something broke while getting process state so taking it as not running.")
     else:
         return True
 
@@ -108,6 +99,8 @@ def get_pid_state_string(pid_list):
 
         total_state += "{}:{}   ".format(pid, state_str)
 
+    if not total_state:
+        return "NONE"
     return total_state
 
 

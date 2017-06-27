@@ -54,6 +54,7 @@ DEFAULT_PID_FILE_LOCATION = "/var/tmp/easyjoblite.pid"
 DEFAULT_LOG_FILE_PATH = "/var/tmp/easyjoblite.log"
 DEFAULT_DL_LOG_FILE = "/var/tmp/easyjoblite_dl.log"
 DEFAULT_CONFIG_FILE = "/var/tmp/easyjoblite.yaml"
+DEFAULT_HEALTH_CHECK_INTERVAL = 2
 
 BASE_COMMAND = "nohup easyjoblite"
 STOP_TYPE_ALL = "all"

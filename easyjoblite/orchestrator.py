@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 
 import logging
+import signal
 import subprocess
 import time
+import traceback
 from exceptions import KeyError
 from multiprocessing import Process
 
@@ -30,10 +32,12 @@ class Orchestrator(object):
             constants.DEAD_LETTER_QUEUE: self.create_dead_letter_queue_consumer
         }
 
+        signal.signal(signal.SIGTERM, self.orchestrator_signal_term_handler)
         self._config = Configuration(**kwargs)
 
         self._service_inited = False
         self._booking_exchange = None
+        self._run_healthcheck = False
 
     def validate_init(self):
         if not self._service_inited:
@@ -71,6 +75,10 @@ class Orchestrator(object):
 
         # create all consumers
         self.create_all_consumers(is_detached)
+
+        # start health check
+        self._run_healthcheck = True
+        self.run_health_check()
 
     def create_all_consumers(self, is_detached=False):
         """
@@ -226,15 +234,25 @@ class Orchestrator(object):
 
         os.system(command_str)
 
-    def start_consumer(self, type):
+    def start_consumer(self, worker_type):
         self.setup_entities()
 
         logging.basicConfig(filename=self.get_config().workers_log_file_path)
+        logger = logging.getLogger(self.__class__.__name__)
 
-        if type not in self.consumer_creater_map:
-            raise KeyError("Invalid consumer type")
+        if worker_type not in self.consumer_creater_map:
+            raise KeyError("Invalid consumer worker_type")
 
-        self.consumer_creater_map[type]()
+        try:
+            self.consumer_creater_map[worker_type]()
+        except Exception as e:
+            traceback.print_exc()
+            logger.error("Got an exception in the worker : {}".format(e.message))
+
+        service_state = state.ServiceState()
+        service_state.remove_worker_pid(worker_type, os.getpid())
+        logger.info("Quitting worker: {}".format(os.getpid()))
+        exit(0)
 
     def create_work_cunsumer(self):
         self.validate_init()
@@ -250,6 +268,43 @@ class Orchestrator(object):
         self.validate_init()
         dead_letter_consumer = DeadLetterQueueConsumer(self)
         dead_letter_consumer.consume_from_dead_letter_queue(self.dlq_queue)
+
+    def run_health_check(self):
+        logger = logging.getLogger(self.__class__.__name__)
+        logger.info("Initializing health check")
+
+        # healthcheck job workers
+        while self._run_healthcheck:
+            logger.info("starting health check")
+            self.match_required_worker(constants.WORK_QUEUE, self.get_config().default_worker_count)
+            self.match_required_worker(constants.RETRY_QUEUE, self.get_config().default_retry_consumer_count)
+            self.match_required_worker(constants.DEAD_LETTER_QUEUE, self.get_config().default_dl_consumer_count)
+
+            logger.info("Done health check. will sleep for {} min.".format(self.get_config().health_check_interval))
+            time.sleep(self.get_config().health_check_interval * 60)
+
+        logger.info("Exiting health check")
+
+    def match_required_worker(self, worker_type, required_count):
+        """
+        spawn missing worker
+        :param worker_type: type of worker
+        :param required_count: type of worker
+        :return: 
+        """
+        logger = logging.getLogger(self.__class__.__name__)
+        logger.info("doing healthcheck for {} workers for required {}".format(worker_type, required_count))
+        service_state = state.ServiceState()
+        service_state.refresh_workers_pid(worker_type)
+
+        worker_diff = required_count - len(service_state.get_pid_list(worker_type))
+
+        if worker_diff > 0:
+            logger.info("worker diff found for worker type: {} with diff {}"
+                        .format(worker_type, worker_diff))
+            for i in range(0, worker_diff):
+                logger.info("starting consumer of type {}".format(worker_type))
+                self.create_consumer(worker_type)
 
     def enqueue_job(self, api, type, tag=None, remote_call_type=None, data=None, api_request_headers=None,
                     content_type=None, notification_handler=None):
@@ -276,3 +331,14 @@ class Orchestrator(object):
         enqueue(self._producer, constants.WORK_QUEUE, job, data)
 
         return job.id
+
+    def orchestrator_signal_term_handler(self, signum, frame):
+        """
+        signal handler for the workers
+        :param signum: 
+        :param frame: 
+        :return: 
+        """
+        logger = logging.getLogger(self.__class__.__name__)
+        logger.warning("SIGTERM found so stopping worker with signum {0}".format(signum))
+        self._run_healthcheck = False

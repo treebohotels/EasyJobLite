@@ -56,19 +56,40 @@ class ServiceState(object):
             raise KeyError("Invalid key : " + str(type))
         self.persist_state()
 
-    def remove_worker_pid(self, type, pid):
+    def remove_worker_pid(self, worker_type, pid):
         """
         remove a worker pid from the list
-        :param type: type of worker
+        :param worker_type: type of worker
         :param pid: pid to be removed
         :return: 
         """
-        if type == constants.WORK_QUEUE:
+        if worker_type == constants.WORK_QUEUE:
             self.job_worker_pids.remove(pid)
-        elif type == constants.RETRY_QUEUE:
+        elif worker_type == constants.RETRY_QUEUE:
             self.retry_worker_pids.remove(pid)
-        elif type == constants.DEAD_LETTER_QUEUE:
+        elif worker_type == constants.DEAD_LETTER_QUEUE:
             self.dlq_worker_pids.remove(pid)
         else:
-            raise KeyError("Invalid key : " + str(type))
+            raise KeyError("Invalid key : " + str(worker_type))
         self.persist_state()
+
+    def refresh_workers_pid(self, worker_type):
+        """
+        refresh the state of pids
+        :param worker_type: the type of worker
+        :return: 
+        """
+        pid_list = list(self.get_pid_list(worker_type))
+        # job worker
+        for pid in pid_list:
+            if not utils.is_process_running(pid):
+                self.remove_worker_pid(worker_type, pid)
+
+    def refresh_all_workers_pid(self):
+        """
+        refresh all the worker queue pids
+        :return: 
+        """
+        self.refresh_workers_pid(constants.WORK_QUEUE)
+        self.refresh_workers_pid(constants.RETRY_QUEUE)
+        self.refresh_workers_pid(constants.DEAD_LETTER_QUEUE)

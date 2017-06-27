@@ -5,7 +5,7 @@ import logging
 from easyjoblite import orchestrator, constants
 from local_tst import local_method_job_failed
 
-logging.basicConfig()
+logging.basicConfig(level=logging.INFO)
 
 
 def test_job_work():
@@ -15,10 +15,11 @@ def test_job_work():
     print "SLEEP TIME: " + str(worker.get_config().eqc_sleep_duration)
     print "MAX RETRIES: " + str(worker.get_config().max_retries)
 
-    worker.start_service()
+    worker.setup_entities()
     print str(worker.get_config().__dict__)
     data = {"test1": "test2"}
     worker.enqueue_job(local_method_job_failed, constants.API_LOCAL, data=data)
+    worker.start_service()
     print "Done enquing job"
 
 

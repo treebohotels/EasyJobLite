@@ -154,7 +154,7 @@ class BaseRMQConsumer(object):
         self._queue_consumer.cancel()
 
         # disconnect from the queue
-        logger.info("Quitting worker: {}".format(os.getpid()))
+        logger.info("Quitting from locked listening")
 
     def produce_to_queue(self, queue_type, body, job):
         """

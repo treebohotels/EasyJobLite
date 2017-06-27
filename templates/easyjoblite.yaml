@@ -11,3 +11,4 @@ max_worker_count: 10
 pid_file_path: /var/tmp/easyjoblite.pid
 rabbitmq_url: amqp://guest:guest@localhost:5672//
 workers_log_file_path: /var/tmp/easyjoblite.log
+health_check_interval: 2
