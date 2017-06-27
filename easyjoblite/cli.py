@@ -12,8 +12,6 @@ import os
 import state
 import utils
 
-logging.basicConfig()
-
 
 @click.group()
 def main():
@@ -96,6 +94,7 @@ def info():
     """show the state of the service"""
     service_state = state.ServiceState()
 
-    click.echo("JOB   WORKER PIDS: " + str(service_state.get_pid_list(constants.WORK_QUEUE)))
-    click.echo("RETRY WORKER PIDS: " + str(service_state.get_pid_list(constants.RETRY_QUEUE)))
-    click.echo("DLQ   WORKER PIDS: " + str(service_state.get_pid_list(constants.DEAD_LETTER_QUEUE)))
+    click.echo("JOB   WORKER PIDS: " + utils.get_pid_state_string(service_state.get_pid_list(constants.WORK_QUEUE)))
+    click.echo("RETRY WORKER PIDS: " + utils.get_pid_state_string(service_state.get_pid_list(constants.RETRY_QUEUE)))
+    click.echo("DLQ   WORKER PIDS: " +
+               utils.get_pid_state_string(service_state.get_pid_list(constants.DEAD_LETTER_QUEUE)))

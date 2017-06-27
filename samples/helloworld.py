@@ -3,7 +3,6 @@
 import logging
 
 from easyjoblite import orchestrator, constants
-from local_tst import got_error
 from local_tst import local_method_job_failed
 
 logging.basicConfig()

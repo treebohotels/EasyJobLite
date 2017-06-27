@@ -1,6 +1,6 @@
+import errno
 import logging
 import socket
-import errno
 from unittest import TestCase
 
 from mock import patch, Mock

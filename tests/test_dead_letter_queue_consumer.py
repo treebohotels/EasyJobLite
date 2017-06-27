@@ -9,7 +9,6 @@ from mock import patch, Mock
 
 
 class TestDeadLetterQueueConsumer(TestCase):
-
     @patch('easyjoblite.consumers.base_rmq_consumer.Connection')
     def setUp(self, connection):
         self.orchestrator = Orchestrator(rabbitmq_url="test.rabbitmq.com:8000")
@@ -55,5 +54,3 @@ class TestDeadLetterQueueConsumer(TestCase):
         job_mock.notify_error.return_value = EasyResponse(400, "Some failure", {"Test": "test"})
 
         self.dead_letter_con.process_message(body, message)
-
-

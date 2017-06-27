@@ -3,9 +3,7 @@ from unittest import TestCase
 
 from easyjoblite import constants
 from easyjoblite.exception import EasyJobServiceNotStarted
-from easyjoblite.job import EasyJob
 from easyjoblite.orchestrator import Orchestrator
-from kombu.entity import PERSISTENT_DELIVERY_MODE
 from mock import patch, Mock
 
 

@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import errno
 import logging
 import pickle
 import signal
@@ -48,6 +49,37 @@ def load_obj(path):
         return pickle.load(f)
 
 
+def is_process_running(pid):
+    """Check whether pid exists in the current process table.
+    UNIX only.
+    :param pid: the processes id to check
+    :return: TRUE/FALSE
+    """
+    if pid < 0:
+        return False
+    if pid == 0:
+        # According to "man 2 kill" PID 0 refers to every process
+        # in the process group of the calling process.
+        # On certain systems 0 is a valid PID but we have no way
+        # to know that in a portable fashion.
+        raise ValueError('invalid PID 0')
+    try:
+        os.kill(pid, 0)
+    except OSError as err:
+        if err.errno == errno.ESRCH:
+            # ESRCH == No such process
+            return False
+        elif err.errno == errno.EPERM:
+            # EPERM clearly means there's a process to deny access to
+            return True
+        else:
+            # According to "man 2 kill" possible error values are
+            # (EINVAL, EPERM, ESRCH)
+            raise
+    else:
+        return True
+
+
 def kill_process(pid):
     """
     kill a process for a given pid
@@ -59,6 +91,24 @@ def kill_process(pid):
         # Check if the process that we killed is alive.
     except OSError as ex:
         return True
+
+
+def get_pid_state_string(pid_list):
+    """
+    state of the pids in string
+    :param pid_list: list of pid's
+    :return: 
+    """
+    total_state = ""
+
+    for pid in pid_list:
+        state_str = "STOPPED"
+        if is_process_running(pid):
+            state_str = "RUNNING"
+
+        total_state += "{}:{}   ".format(pid, state_str)
+
+    return total_state
 
 
 def kill_workers(service_state, type):

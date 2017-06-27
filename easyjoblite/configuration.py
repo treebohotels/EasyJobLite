@@ -151,4 +151,3 @@ class Configuration(object):
         :return: 
         """
         return self.app_id + constants.rabbit_mq_prefix[conf_type]
-

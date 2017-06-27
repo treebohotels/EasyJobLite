@@ -30,7 +30,6 @@ RETRY_QUEUE = "retry"
 WORK_QUEUE = "work"
 BUFFER_QUEUE = "buffer"
 
-
 # rabbit mq exchange and queue prefix
 rabbit_mq_prefix = {
     EXCHANGE: "-ejl-exchange",

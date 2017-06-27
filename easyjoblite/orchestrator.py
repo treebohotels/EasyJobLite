@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import logging
 import subprocess
 import time
 from exceptions import KeyError
@@ -227,6 +228,8 @@ class Orchestrator(object):
 
     def start_consumer(self, type):
         self.setup_entities()
+
+        logging.basicConfig(filename=self.get_config().workers_log_file_path)
 
         if type not in self.consumer_creater_map:
             raise KeyError("Invalid consumer type")

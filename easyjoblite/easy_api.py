@@ -12,8 +12,6 @@ import requests
 from response import EasyResponse
 from utils import as_text, is_string_type
 
-logging.basicConfig()
-
 
 class EasyApi(object):
     def __init__(self):

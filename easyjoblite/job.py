@@ -78,6 +78,20 @@ class EasyJob(object):
             raise UnableToCreateJob(e.message, dict_data)
         return job
 
+    @classmethod
+    def create_dummy_clone_from_dict(cls, dict_data):
+        try:
+            job = cls()
+            if "id" in dict_data:
+                job.id = dict_data["id"]
+            if "type" in dict_data:
+                job.type = dict_data["type"]
+            if "tag" in dict_data:
+                job.tag = dict_data["tag"]
+        except Exception as e:
+            raise UnableToCreateJob(e.message, dict_data)
+        return job
+
     def to_dict(self):
         dict_data = {
             "id": self.id,
@@ -122,8 +136,10 @@ class EasyJob(object):
         return ret_val
 
     def notify_error(self, data, async_timeout=constants.DEFAULT_ASYNC_TIMEOUT):
-        error_data = dict(job_id=self.id, tag=self.tag, api=self.job_api.api, data=data, errors=self.errors)
         if self.should_notify_error():
+            error_data = dict(job_id=self.id, tag=self.tag, data=data, errors=self.errors)
+            if self.job_api:
+                error_data["api"] = self.job_api.api
             return self.notification_handler.execute(error_data, async_timeout)
         else:
             return EasyResponse(400, "No notification handler defined.")

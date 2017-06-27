@@ -10,7 +10,6 @@ from mock import patch, Mock
 
 
 class TestRetryQueueConsumer(TestCase):
-
     @patch('easyjoblite.consumers.base_rmq_consumer.Connection')
     def setUp(self, kombu_connection_mock):
         drain_events = Mock(side_effect=Exception("Test"))
@@ -23,7 +22,6 @@ class TestRetryQueueConsumer(TestCase):
     @patch('easyjoblite.consumers.base_rmq_consumer.Connection')
     @patch('easyjoblite.consumers.retry_queue_consumer.Consumer')
     def test__shovel_to_buffer(self, kombu_consumer_mock, kombu_connection_mock):
-
         consumer_mock = Mock()
         kombu_consumer_mock.return_value = consumer_mock
 

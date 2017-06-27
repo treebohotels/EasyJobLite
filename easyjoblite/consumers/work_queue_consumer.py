@@ -56,6 +56,8 @@ class WorkQueueConsumer(BaseRMQConsumer):
 
             response = job.execute(body, self.get_config().async_timeout)
 
+            message.ack()
+
             if response.status_code >= 400:
                 # todo: we should have booking id here in the log message
                 logger.info("{status}: {resp}".format(status=response.status_code,
@@ -74,15 +76,15 @@ class WorkQueueConsumer(BaseRMQConsumer):
         except (Exception, easyjoblite.exception.ApiTimeoutException) as e:
             traceback.print_exc()
             logger.error(e.message)
+            message.ack()
             self._push_message_to_error_queue(body, message, job)
         except easyjoblite.exception.UnableToCreateJob as e:
             logger.error(e.message + " data: " + str(e.data))
+            message.ack()
             self.__push_raw_msg_to_dlq(body=body,
                                        message=message,
                                        err_msg=e.message,
                                        )
-
-        message.ack()
 
     def __push_raw_msg_to_dlq(self, body, message, err_msg):
         """
@@ -96,14 +98,13 @@ class WorkQueueConsumer(BaseRMQConsumer):
 
         try:
             logger.info("Moving raw item to DLQ for notification and manual intervention")
-            job = EasyJob()
-            job.data = message.headers
+            job = EasyJob.create_dummy_clone_from_dict(message.headers)
             job.add_error(EasyResponse(400, err_msg).__dict__)
             self.produce_to_queue(constants.DEAD_LETTER_QUEUE, body, job)
 
         except Exception as e:
             traceback.print_exc()
-            logger.error("Error moving the work-item to dead-letter-queue: {err}".format(err=e.message))
+            logger.error("Error moving the raw-error to dead-letter-queue: {err}".format(err=e.message))
 
     def _push_msg_to_dlq(self, body, message, job):
         """

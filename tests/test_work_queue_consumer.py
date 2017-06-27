@@ -15,7 +15,6 @@ logging.basicConfig()
 
 
 class TestWorkQueueConsumer(TestCase):
-
     @patch('easyjoblite.consumers.base_rmq_consumer.Connection')
     def setUp(self, connection_mock):
         self.orchestrator = Orchestrator(rabbitmq_url="test.rabbitmq.com:8000")
@@ -87,7 +86,6 @@ class TestWorkQueueConsumer(TestCase):
     @patch("easyjoblite.consumers.work_queue_consumer.WorkQueueConsumer._push_msg_to_dlq")
     @patch("easyjoblite.constants.remote_call_type")
     def test_process_message(self, remote_call_type_mock, push_dlq_mock, push_retry_mock):
-
         post = Mock()
         response = Mock()
         response.status_code = 200
