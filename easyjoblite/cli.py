@@ -73,23 +73,13 @@ def start(type, url, import_paths, max_retries, asyc_timeout, eqc_sleep_duration
 
 
 @main.command()
-@click.argument('type')
-def stop(type):
+@click.argument('worker_type')
+def stop(worker_type):
     """command to stop the processes"""
-    logger = logging.getLogger("easyjobcli:stop")
-    service_state = state.ServiceState()
-    worker_type_list = [constants.WORK_QUEUE, constants.RETRY_QUEUE, constants.DEAD_LETTER_QUEUE]
-
-    if type in worker_type_list:
-        utils.kill_workers(service_state, type)
-        logger.info("Done stoping all the workers of type {}".format(type))
-    elif type == constants.STOP_TYPE_ALL:
-        for local_type in worker_type_list:
-            utils.kill_workers(service_state, local_type)
-        logger.info("Done stoping all the workers ")
-    else:
-        click.echo("Invalid type send to stop statement.")
-    service_state.refresh_all_workers_pid()
+    try:
+        utils.stop_all_workers(worker_type)
+    except KeyError as e:
+        click.echo("Invalid worker_type send to stop statement.")
 
 
 @main.command()

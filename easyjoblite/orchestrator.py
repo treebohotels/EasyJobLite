@@ -15,7 +15,7 @@ from easyjoblite import state
 from easyjoblite.consumers.dead_letter_queue_consumer import DeadLetterQueueConsumer
 from easyjoblite.consumers.retry_queue_consumer import RetryQueueConsumer
 from easyjoblite.consumers.work_queue_consumer import WorkQueueConsumer
-from easyjoblite.utils import enqueue, is_main_thread
+from easyjoblite.utils import enqueue, is_main_thread, stop_all_workers
 from exception import EasyJobServiceNotStarted
 from job import EasyJob
 from kombu import Connection
@@ -345,3 +345,4 @@ class Orchestrator(object):
         logger = logging.getLogger(self.__class__.__name__)
         logger.warning("SIGTERM found so stopping worker with signum {0}".format(signum))
         self._run_healthcheck = False
+        stop_all_workers(constants.STOP_TYPE_ALL)

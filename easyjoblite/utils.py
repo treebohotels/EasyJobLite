@@ -1,14 +1,18 @@
 # -*- coding: utf-8 -*-
 
 import logging
+import os
 import pickle
 import signal
 import sys
+import time
 import threading
 import traceback
 
-import os
 from kombu.entity import PERSISTENT_DELIVERY_MODE
+
+from easyjoblite import state
+from easyjoblite import constants
 
 
 def as_text(v):
@@ -47,8 +51,16 @@ def load_obj(path):
     :param path: the path to be loaded
     :return: 
     """
-    with open(path, 'rb') as f:
-        return pickle.load(f)
+    logger = logging.getLogger("load_obj")
+    retry_count = 3
+    while retry_count > 0:
+        try:
+            with open(path, 'rb') as f:
+                return pickle.load(f)
+        except (IOError, EOFError) as e:
+            logger.warning("failed loading obj with error: {}. Will retry for {} time.".format(retry_count, e.message))
+            time.sleep(2)
+            retry_count -= 1
 
 
 def is_process_running(pid):
@@ -128,6 +140,28 @@ def kill_workers(service_state, type):
     for pid in pid_list:
         kill_process(pid)
         logging.info("Done killing : " + str(pid))
+
+
+def stop_all_workers(worker_type):
+    """
+    stops all the workers of the given type
+    :param worker_type: 
+    :return: 
+    """
+    logger = logging.getLogger("stop_all_workers")
+    service_state = state.ServiceState()
+    worker_type_list = [constants.WORK_QUEUE, constants.RETRY_QUEUE, constants.DEAD_LETTER_QUEUE]
+
+    if worker_type in worker_type_list:
+        kill_workers(service_state, worker_type)
+        logger.info("Done stopping all the workers of worker_type {}".format(worker_type))
+    elif worker_type == constants.STOP_TYPE_ALL:
+        for local_type in worker_type_list:
+            kill_workers(service_state, local_type)
+        logger.info("Done stopping all the workers ")
+    else:
+        raise KeyError
+    service_state.refresh_all_workers_pid()
 
 
 def update_import_paths(import_paths):
