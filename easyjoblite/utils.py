@@ -72,7 +72,7 @@ def is_process_running(pid):
     if pid < 0:
         return False
     try:
-        ret = os.popen("ps -o pid,stat | grep {} |  grep -v \'Z\' | awk \'{{ print $1}}\'".format(pid)).read()
+        ret = os.popen("ps -eo pid,stat | grep {} |  grep -v \'Z\' | awk \'{{ print $1}}\'".format(pid)).read()
 
         if ret and int(ret) == pid:
             return True

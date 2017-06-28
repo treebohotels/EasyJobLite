@@ -252,7 +252,7 @@ class Orchestrator(object):
             traceback.print_exc()
             logger.error("Got an exception in the worker : {}".format(e.message))
 
-        service_state = state.ServiceState()
+        service_state = state.ServiceState(self.get_config().pid_file_path)
         service_state.remove_worker_pid(worker_type, os.getpid())
         logger.info("Quitting worker: {}".format(os.getpid()))
         exit(0)
@@ -297,7 +297,7 @@ class Orchestrator(object):
         """
         logger = logging.getLogger(self.__class__.__name__)
         logger.info("doing healthcheck for {} workers for required {}".format(worker_type, required_count))
-        service_state = state.ServiceState()
+        service_state = state.ServiceState(self.get_config().pid_file_path)
         service_state.refresh_workers_pid(worker_type)
 
         worker_diff = required_count - len(service_state.get_pid_list(worker_type))
