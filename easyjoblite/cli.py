@@ -12,6 +12,8 @@ import os
 import state
 import utils
 
+logging.basicConfig()
+
 
 @click.group()
 def main():
@@ -87,6 +89,7 @@ def stop(type):
         logger.info("Done stoping all the workers ")
     else:
         click.echo("Invalid type send to stop statement.")
+    service_state.refresh_all_workers_pid()
 
 
 @main.command()

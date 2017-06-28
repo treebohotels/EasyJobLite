@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
-import errno
+
 import logging
 import pickle
 import signal
-import traceback
 import sys
+import threading
+import traceback
 
 import os
 from kombu.entity import PERSISTENT_DELIVERY_MODE
@@ -63,6 +64,8 @@ def is_process_running(pid):
 
         if ret and int(ret) == pid:
             return True
+        else:
+            return False
     except Exception as e:
         traceback.print_exc()
         logger = logging.getLogger("is_process_running")
@@ -104,6 +107,14 @@ def get_pid_state_string(pid_list):
     return total_state
 
 
+def is_main_thread():
+    """
+    check if current thread is main thread or not
+    :return: 
+    """
+    return threading.current_thread().__class__.__name__ == '_MainThread'
+
+
 def kill_workers(service_state, type):
     """
     function to kill all the workers of the given type
@@ -116,7 +127,6 @@ def kill_workers(service_state, type):
     pid_list = list(service_state.get_pid_list(type))
     for pid in pid_list:
         kill_process(pid)
-        service_state.remove_worker_pid(type, pid)
         logging.info("Done killing : " + str(pid))
 
 

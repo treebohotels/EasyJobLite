@@ -15,7 +15,7 @@ from easyjoblite import state
 from easyjoblite.consumers.dead_letter_queue_consumer import DeadLetterQueueConsumer
 from easyjoblite.consumers.retry_queue_consumer import RetryQueueConsumer
 from easyjoblite.consumers.work_queue_consumer import WorkQueueConsumer
-from easyjoblite.utils import enqueue
+from easyjoblite.utils import enqueue, is_main_thread
 from exception import EasyJobServiceNotStarted
 from job import EasyJob
 from kombu import Connection
@@ -26,13 +26,15 @@ from kombu import Queue
 
 class Orchestrator(object):
     def __init__(self, **kwargs):
+        logger = logging.getLogger(self.__class__.__name__)
         self.consumer_creater_map = {
             constants.WORK_QUEUE: self.create_work_cunsumer,
             constants.RETRY_QUEUE: self.create_retry_queue_consumer,
             constants.DEAD_LETTER_QUEUE: self.create_dead_letter_queue_consumer
         }
-
-        signal.signal(signal.SIGTERM, self.orchestrator_signal_term_handler)
+        if is_main_thread():
+            logger.info("Adding signal handler.")
+            signal.signal(signal.SIGTERM, self.orchestrator_signal_term_handler)
         self._config = Configuration(**kwargs)
 
         self._service_inited = False

@@ -5,9 +5,8 @@ import signal
 import socket
 import traceback
 
-import os
 from amqp import RecoverableConnectionError
-from easyjoblite.utils import enqueue
+from easyjoblite.utils import enqueue, is_main_thread
 from kombu import Connection
 from kombu import Consumer
 from kombu import Producer
@@ -27,7 +26,9 @@ class BaseRMQConsumer(object):
         try:
             # Doing variable init
             self._orchestrator = orchestrator
-            signal.signal(signal.SIGTERM, self.signal_term_handler)
+            if is_main_thread():
+                logger.info("Adding signal handler.")
+                signal.signal(signal.SIGTERM, self.signal_term_handler)
             self._should_block = True
             self._from_queue = None
             self._is_connection_reset = False

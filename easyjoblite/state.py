@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+import logging
+
 import constants
 import os
 import utils
@@ -63,15 +65,18 @@ class ServiceState(object):
         :param pid: pid to be removed
         :return: 
         """
-        if worker_type == constants.WORK_QUEUE:
-            self.job_worker_pids.remove(pid)
-        elif worker_type == constants.RETRY_QUEUE:
-            self.retry_worker_pids.remove(pid)
-        elif worker_type == constants.DEAD_LETTER_QUEUE:
-            self.dlq_worker_pids.remove(pid)
-        else:
-            raise KeyError("Invalid key : " + str(worker_type))
-        self.persist_state()
+        try:
+            if worker_type == constants.WORK_QUEUE:
+                self.job_worker_pids.remove(pid)
+            elif worker_type == constants.RETRY_QUEUE:
+                self.retry_worker_pids.remove(pid)
+            elif worker_type == constants.DEAD_LETTER_QUEUE:
+                self.dlq_worker_pids.remove(pid)
+            self.persist_state()
+        except ValueError as e:
+            logger = logging.getLogger(self.__class__.__name__)
+            logger.warning("unable to remove {} as not found in {} pid list with exception: {}."
+                           .format(pid, worker_type, e.message))
 
     def refresh_workers_pid(self, worker_type):
         """
