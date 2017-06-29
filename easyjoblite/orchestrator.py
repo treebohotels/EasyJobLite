@@ -16,7 +16,7 @@ from easyjoblite.consumers.dead_letter_queue_consumer import DeadLetterQueueCons
 from easyjoblite.consumers.retry_queue_consumer import RetryQueueConsumer
 from easyjoblite.consumers.work_queue_consumer import WorkQueueConsumer
 from easyjoblite.utils import enqueue, is_main_thread, stop_all_workers
-from exception import EasyJobServiceNotStarted
+from exception import EasyJobServiceNotStarted, UnableToCreateJob
 from job import EasyJob
 from kombu import Connection
 from kombu import Exchange
@@ -42,12 +42,14 @@ class Orchestrator(object):
         self._run_healthcheck = False
         self._is_master = False
 
-    def validate_init(self):
-        if not self._service_inited:
-            raise EasyJobServiceNotStarted()
+    def validate_init(self, should_init=False):
+        if not self._service_inited and should_init:
+            return self.setup_entities()
+        return self._service_inited
 
     def get_connection(self):
-        self.validate_init()
+        if not self.validate_init():
+            raise EasyJobServiceNotStarted()
         return self._conn
 
     def get_config(self):
@@ -112,54 +114,64 @@ class Orchestrator(object):
         no advanced error handling yet (like error on declaration with altered properties etc)
         """
         # return if already inited
+        logger = logging.getLogger(self.__class__.__name__)
+
         if self._service_inited:
-            return
+            logger.info("Already setup done so returning.")
+            return True
 
-        # setup exchange
-        self._booking_exchange = Exchange(self._config.get_mq_config(constants.EXCHANGE),
-                                          type='topic',
-                                          durable=True)
+        try:
+            logger.info("starting of setup.")
+            # setup exchange
+            self._booking_exchange = Exchange(self._config.get_mq_config(constants.EXCHANGE),
+                                              type='topic',
+                                              durable=True)
 
-        # setup durable queues
-        self.work_queue = Queue(self._config.get_mq_config(constants.WORK_QUEUE),
-                                exchange=self._booking_exchange,
-                                routing_key=constants.WORK_QUEUE + ".#",
-                                durable=True)
+            # setup durable queues
+            self.work_queue = Queue(self._config.get_mq_config(constants.WORK_QUEUE),
+                                    exchange=self._booking_exchange,
+                                    routing_key=constants.WORK_QUEUE + ".#",
+                                    durable=True)
 
-        self.retry_queue = Queue(self._config.get_mq_config(constants.RETRY_QUEUE),
-                                 exchange=self._booking_exchange,
-                                 routing_key=constants.RETRY_QUEUE + ".#",
-                                 durable=True)
+            self.retry_queue = Queue(self._config.get_mq_config(constants.RETRY_QUEUE),
+                                     exchange=self._booking_exchange,
+                                     routing_key=constants.RETRY_QUEUE + ".#",
+                                     durable=True)
 
-        self.dlq_queue = Queue(self._config.get_mq_config(constants.DEAD_LETTER_QUEUE),
-                               exchange=self._booking_exchange,
-                               routing_key=constants.DEAD_LETTER_QUEUE + ".#",
-                               durable=True)
+            self.dlq_queue = Queue(self._config.get_mq_config(constants.DEAD_LETTER_QUEUE),
+                                   exchange=self._booking_exchange,
+                                   routing_key=constants.DEAD_LETTER_QUEUE + ".#",
+                                   durable=True)
 
-        # a buffer queue is needed by error-queue-consumer to temp-buffer msgs for processing
-        # this is to handle retry loop which may cause between retry-queue and work-queue.
-        # todo: Need to implement an alternive as this has a copy overhead
-        #  which can be significant when the error queue is large
-        self.buffer_queue = Queue(name=self._config.get_mq_config(constants.BUFFER_QUEUE),
-                                  exchange=self._booking_exchange,
-                                  routing_key='buffer.#',
-                                  durable=True)
+            # a buffer queue is needed by error-queue-consumer to temp-buffer msgs for processing
+            # this is to handle retry loop which may cause between retry-queue and work-queue.
+            # todo: Need to implement an alternive as this has a copy overhead
+            #  which can be significant when the error queue is large
+            self.buffer_queue = Queue(name=self._config.get_mq_config(constants.BUFFER_QUEUE),
+                                      exchange=self._booking_exchange,
+                                      routing_key='buffer.#',
+                                      durable=True)
 
-        # todo: do we need to make confirm_publish configurable?
-        self._conn = Connection(self.get_config().rabbitmq_url,
-                                transport_options={'confirm_publish': True})
+            # todo: do we need to make confirm_publish configurable?
+            self._conn = Connection(self.get_config().rabbitmq_url,
+                                    transport_options={'confirm_publish': True})
 
-        # declare all the exchanges and queues needed (declare, not overwrite existing)
-        for entity in [self._booking_exchange, self.work_queue, self.retry_queue,
-                       self.dlq_queue, self.buffer_queue]:
-            entity.maybe_bind(self._conn)
-            entity.declare()
+            # declare all the exchanges and queues needed (declare, not overwrite existing)
+            for entity in [self._booking_exchange, self.work_queue, self.retry_queue,
+                           self.dlq_queue, self.buffer_queue]:
+                entity.maybe_bind(self._conn)
+                entity.declare()
 
-        # setup producer to push to error and dlqs
-        self._producer = Producer(channel=self._conn.channel(),
-                                  exchange=self._booking_exchange)
+            # setup producer to push to error and dlqs
+            self._producer = Producer(channel=self._conn.channel(),
+                                      exchange=self._booking_exchange)
 
-        self._service_inited = True
+            self._service_inited = True
+        except Exception as e:
+            logger = logging.getLogger(self.__class__.__name__)
+            logger.error("Unable to init server with error: {}".format(e.message))
+
+        return self._service_inited
 
     def create_consumer(self, type, is_detached=False):
         """
@@ -260,17 +272,20 @@ class Orchestrator(object):
         exit(0)
 
     def create_work_cunsumer(self):
-        self.validate_init()
+        if not self.validate_init():
+            raise EasyJobServiceNotStarted()
         worker = WorkQueueConsumer(self)
         worker.consume_from_work_queue(self.work_queue)
 
     def create_retry_queue_consumer(self):
-        self.validate_init()
+        if not self.validate_init():
+            raise EasyJobServiceNotStarted()
         retry_consumer = RetryQueueConsumer(self)
         retry_consumer.consume_from_retry_queue(self.retry_queue, self.buffer_queue)
 
     def create_dead_letter_queue_consumer(self):
-        self.validate_init()
+        if not self.validate_init():
+            raise EasyJobServiceNotStarted()
         dead_letter_consumer = DeadLetterQueueConsumer(self)
         dead_letter_consumer.consume_from_dead_letter_queue(self.dlq_queue)
 
@@ -325,15 +340,33 @@ class Orchestrator(object):
         :param notification_handler: the api to be called when a job goes into dlq (type same as api)
         :return: A unique job id assigned to the job.
         """
-        self.validate_init()
+        logger = logging.getLogger(self.__class__.__name__)
+
+        if not self.validate_init(should_init=True):
+            logger.error(
+                "failed for valid init in create_job.")
+            raise UnableToCreateJob(dict(api=api, type=type, tag=tag, data=data))
 
         # create the job
+        is_enqueue = False
         job = EasyJob.create(api, type, tag=tag, remote_call_type=remote_call_type, data=data,
                              api_request_headers=api_request_headers,
                              content_type=content_type, notification_handler=notification_handler)
-
         # enqueue
-        enqueue(self._producer, constants.WORK_QUEUE, job, data)
+        for attempt in range(2):
+            try:
+                enqueue(self._producer, constants.WORK_QUEUE, job, data)
+                is_enqueue = True
+                break
+            except Exception as e:
+                logger.error(
+                    "failed while enqueuing so will reset connection and retry: {err}".format(
+                        err=e.message))
+                self._service_inited = False
+                self.setup_entities()
+
+        if not is_enqueue:
+            raise UnableToCreateJob(job.to_dict())
 
         return job.id
 

@@ -15,9 +15,8 @@ class TestOrchestrator(TestCase):
         # test is started should be false
         self.assertEqual(orchestrator._service_inited, False)
 
-        # test that service validation should through an exception
-        with self.assertRaises(EasyJobServiceNotStarted) as e:
-            orchestrator.validate_init()
+        # test that service validation should return false
+        self.assertEqual(orchestrator.validate_init(), False)
 
         # test when config is set while creating then value is reflected in the config
         orchestrator1 = Orchestrator(rabbitmq_url="test.rabbitmq.com:8000", max_worker_count=34)
@@ -104,8 +103,7 @@ class TestOrchestrator(TestCase):
         api = "http://test.api.com/test_dest"
         api_request_headers = {"title": "Yippi"}
 
-        with self.assertRaises(EasyJobServiceNotStarted) as e:
-            orchestrator.enqueue_job(api, constants.API_REMOTE, api_request_headers=api_request_headers, data=body)
+        orchestrator.enqueue_job(api, constants.API_REMOTE, api_request_headers=api_request_headers, data=body)
 
         orchestrator.setup_entities()
 
