@@ -40,6 +40,7 @@ class Orchestrator(object):
         self._service_inited = False
         self._booking_exchange = None
         self._run_healthcheck = False
+        self._is_master = False
 
     def validate_init(self):
         if not self._service_inited:
@@ -81,6 +82,7 @@ class Orchestrator(object):
         # start health check
         if run_health_check:
             self._run_healthcheck = True
+            self._is_master = True
             self.run_health_check()
 
     def create_all_consumers(self, is_detached=False):
@@ -345,4 +347,5 @@ class Orchestrator(object):
         logger = logging.getLogger(self.__class__.__name__)
         logger.warning("SIGTERM found so stopping worker with signum {0}".format(signum))
         self._run_healthcheck = False
-        stop_all_workers(constants.STOP_TYPE_ALL)
+        if self._is_master:
+            stop_all_workers(constants.STOP_TYPE_ALL)
