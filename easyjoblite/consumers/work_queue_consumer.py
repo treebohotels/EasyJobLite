@@ -51,6 +51,15 @@ class WorkQueueConsumer(BaseRMQConsumer):
 
         try:
             job = EasyJob.create_from_dict(message.headers)
+        except easyjoblite.exception.UnableToCreateJob as e:
+            logger.error(e.message + " data: " + str(e.data))
+            message.ack()
+            self.__push_raw_msg_to_dlq(body=body,
+                                       message=message,
+                                       err_msg=e.message,
+                                       )
+            return
+        try:
             api = job.api
             logger.debug("recieved api: " + str(api))
 
@@ -78,13 +87,6 @@ class WorkQueueConsumer(BaseRMQConsumer):
             logger.error(str(e))
             message.ack()
             self._push_message_to_error_queue(body, message, job)
-        except easyjoblite.exception.UnableToCreateJob as e:
-            logger.error(e.message + " data: " + str(e.data))
-            message.ack()
-            self.__push_raw_msg_to_dlq(body=body,
-                                       message=message,
-                                       err_msg=e.message,
-                                       )
 
     def __push_raw_msg_to_dlq(self, body, message, err_msg):
         """

@@ -4,7 +4,7 @@ import sys
 from unittest import TestCase
 
 import os
-import test_class
+from tests import test_class
 from easyjoblite import constants
 from easyjoblite.consumers import work_queue_consumer
 from easyjoblite.job import EasyJob

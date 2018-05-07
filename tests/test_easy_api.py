@@ -2,11 +2,9 @@ import sys
 from unittest import TestCase
 
 import os
-import test_class
+from tests import test_class
 from easyjoblite import constants
 from easyjoblite.easy_api import EasyApi
-from test_class import TestClass
-from test_class import dummy_function_external
 
 
 class TestEasyApi(TestCase):
@@ -27,7 +25,7 @@ class TestEasyApi(TestCase):
 
         # test local call
         # method
-        job = EasyApi.create(constants.API_LOCAL, dummy_function_external)
+        job = EasyApi.create(constants.API_LOCAL, test_class.dummy_function_external)
 
         self.assertEqual(job.type, constants.API_LOCAL)
         self.assertEqual(job.api, "tests.test_class.dummy_function_external")
@@ -38,7 +36,7 @@ class TestEasyApi(TestCase):
         self.assertEqual(job._func_name, "tests.test_class.dummy_function_external")
 
         # class method
-        test_cls = TestClass()
+        test_cls = test_class.TestClass()
         job = EasyApi.create(constants.API_LOCAL, test_cls.dummy_function_in_class)
         self.assertEqual(job.api, "dummy_function_in_class")
         self.assertEqual(job._instance, test_cls)

@@ -82,7 +82,7 @@ class TestBaseRMQConsumer(TestCase):
         with self.assertRaises(NotImplementedError) as e:
             base_consumer.process_message("Body", "Message")
 
-        self.assertEqual(e.exception.message, "'BaseRMQConsumer' needs to implement process_message(...)")
+        self.assertEqual(str(e.exception), "'BaseRMQConsumer' needs to implement process_message(...)")
 
     @patch('easyjoblite.consumers.base_rmq_consumer.Connection')
     @patch('easyjoblite.consumers.base_rmq_consumer.Producer')

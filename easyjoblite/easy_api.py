@@ -56,13 +56,12 @@ class EasyApi(object):
             easy_api._func_name = api
         logger.info("Instance data: {}".format(easy_api._instance))
         job_tuple = easy_api._func_name, easy_api._instance
-        easy_api._data = pickle.dumps(job_tuple, protocol=0)
-        logger.info("Pickled data: {}".format(easy_api._data))
+        easy_api._data = pickle.dumps(job_tuple, protocol=0).decode('utf-8')
         return easy_api
 
     @staticmethod
     def load_data(data):
-        return pickle.loads(data.encode())
+        return pickle.loads(data.encode('utf-8'))
 
     @classmethod
     def create_from_dict(cls, dict_data):

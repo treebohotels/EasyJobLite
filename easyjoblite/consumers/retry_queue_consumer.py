@@ -60,7 +60,7 @@ class RetryQueueConsumer(BaseRMQConsumer):
 
             except Exception as e:
                 traceback.print_exc()
-                logger.error("Error moving the work-item to error-queue: {err}".format(err=e.message))
+                logger.error("Error moving the work-item to error-queue: {err}".format(err=e))
                 # todo: what do we do next in this case?
 
         else:
@@ -76,7 +76,7 @@ class RetryQueueConsumer(BaseRMQConsumer):
 
             except Exception as e:
                 traceback.print_exc()
-                logger.error("Error moving the work-item to dead-letter-queue: {err}".format(err=e.message))
+                logger.error("Error moving the work-item to dead-letter-queue: {err}".format(err=e))
                 # todo: what do we do next in this case?
 
     def _shoveller(self, body, message):

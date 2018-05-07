@@ -35,7 +35,8 @@ class UnableToCreateJob(Exception):
         """
 
         self.data = data
+        self.message = message
 
-        message = "Unable to create job because: {}.".format(message)
+        message = "Unable to create job because: {}.".format(self.message)
 
         super(UnableToCreateJob, self).__init__(message)
