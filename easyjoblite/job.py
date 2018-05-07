@@ -5,10 +5,10 @@ import random
 import string
 import time
 
-import constants
-from easy_api import EasyApi
+from easyjoblite import constants
+from easyjoblite.easy_api import EasyApi
+from easyjoblite.exception import UnableToCreateJob
 from easyjoblite.response import EasyResponse
-from exception import UnableToCreateJob
 
 
 class EasyJob(object):
@@ -75,7 +75,7 @@ class EasyJob(object):
             if "response" in dict_data:
                 job.response = EasyResponse(dict_data["response"])
         except Exception as e:
-            raise UnableToCreateJob(e.message, dict_data)
+            raise UnableToCreateJob(str(e), dict_data)
         return job
 
     @classmethod
@@ -89,7 +89,7 @@ class EasyJob(object):
             if "tag" in dict_data:
                 job.tag = dict_data["tag"]
         except Exception as e:
-            raise UnableToCreateJob(e.message, dict_data)
+            raise UnableToCreateJob(str(e), dict_data)
         return job
 
     def to_dict(self):

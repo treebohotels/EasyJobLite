@@ -6,11 +6,12 @@ import logging
 import pickle
 import traceback
 
-import constants
-import exception
 import requests
-from response import EasyResponse
-from utils import as_text, is_string_type
+
+from easyjoblite import constants
+from easyjoblite import exception
+from easyjoblite.response import EasyResponse
+from easyjoblite.utils import as_text, is_string_type
 
 
 class EasyApi(object):
@@ -25,6 +26,7 @@ class EasyApi(object):
 
     @classmethod
     def create(cls, type, api, api_request_headers={}, remote_call_type=None, content_type=None):
+        logger = logging.getLogger(cls.__class__.__name__)
         if type not in constants.job_call_types:
             raise TypeError("Invalid remote_call_type: {}".format(type))
         easy_api = cls()
@@ -52,12 +54,15 @@ class EasyApi(object):
                 raise TypeError('Expected a callable or a string for local job type, but got: {0}'.format(api))
         else:
             easy_api._func_name = api
+        logger.info("Instance data: {}".format(easy_api._instance))
         job_tuple = easy_api._func_name, easy_api._instance
-        easy_api._data = pickle.dumps(job_tuple)
+        easy_api._data = pickle.dumps(job_tuple, protocol=0)
+        logger.info("Pickled data: {}".format(easy_api._data))
         return easy_api
 
-    def load_data(self):
-        return pickle.loads(self._data)
+    @staticmethod
+    def load_data(data):
+        return pickle.loads(data.encode())
 
     @classmethod
     def create_from_dict(cls, dict_data):
@@ -69,7 +74,7 @@ class EasyApi(object):
             easy_api.type = dict_data["type"]
         if "data" in dict_data:
             easy_api._data = dict_data["data"]
-            easy_api._func_name, easy_api._instance = easy_api.load_data()
+            easy_api._func_name, easy_api._instance = easy_api.load_data(easy_api._data)
         if "api_request_headers" in dict_data:
             easy_api.api_request_headers = dict_data["api_request_headers"]
         if "remote_call_type" in dict_data:
@@ -82,7 +87,6 @@ class EasyApi(object):
     def to_dict(self):
         dict_data = {
             "type": self.type,
-            "instance": pickle.dumps(self._instance, protocol=0),
             "data": self._data,
             "api_request_headers": self.api_request_headers,
             "remote_call_type": self.remote_call_type,

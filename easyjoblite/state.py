@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 
 import logging
-
-import constants
 import os
-import utils
+
+from easyjoblite import constants
+from easyjoblite import utils
 
 
 class ServiceState(object):
@@ -76,7 +76,7 @@ class ServiceState(object):
         except ValueError as e:
             logger = logging.getLogger(self.__class__.__name__)
             logger.warning("unable to remove {} as not found in {} pid list with exception: {}."
-                           .format(pid, worker_type, e.message))
+                           .format(pid, worker_type, str(e)))
 
     def refresh_workers_pid(self, worker_type):
         """

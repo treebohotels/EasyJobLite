@@ -5,10 +5,11 @@ import socket
 import time
 import traceback
 
-from base_rmq_consumer import BaseRMQConsumer
-from easyjoblite import constants
-from easyjoblite.job import EasyJob
 from kombu import Consumer
+
+from easyjoblite import constants
+from easyjoblite.consumers.base_rmq_consumer import BaseRMQConsumer
+from easyjoblite.job import EasyJob
 
 
 class RetryQueueConsumer(BaseRMQConsumer):

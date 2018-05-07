@@ -6,10 +6,11 @@ import socket
 import traceback
 
 from amqp import RecoverableConnectionError
-from easyjoblite.utils import enqueue, is_main_thread
 from kombu import Connection
 from kombu import Consumer
 from kombu import Producer
+
+from easyjoblite.utils import enqueue, is_main_thread
 
 
 class BaseRMQConsumer(object):
@@ -39,7 +40,7 @@ class BaseRMQConsumer(object):
         except Exception as e:
             traceback.print_exc()
             logger.error("Error connecting to rabbitmq({u}): {err}".format(u=self.get_config().rabbitmq_url,
-                                                                           err=e.message))
+                                                                           err=str(e)))
             raise
 
     def get_config(self):
@@ -141,14 +142,14 @@ class BaseRMQConsumer(object):
 
                         break
             except (IOError, KeyboardInterrupt) as e:
-                logger.error("Got io error so shutting down.".format(err=e.message))
+                logger.error("Got io error so shutting down.".format(err=str(e)))
                 self._should_block = False
             except Exception as e:
                 logger.warning("Exception happened may be connection reset.")
                 if not self._is_connection_reset:
                     traceback.print_exc()
                     logger.error(
-                        "Something broke while listening for new messages: {err}".format(err=e.message))
+                        "Something broke while listening for new messages: {err}".format(err=str(e)))
                     self._should_block = False
                 self._is_connection_reset = False
 
@@ -178,12 +179,12 @@ class BaseRMQConsumer(object):
             except RecoverableConnectionError as e:
                 logger.error(
                     "RecoverableConnectionError exception while enqueuing so resetting connection: {err}".format(
-                        err=e.message))
+                        err=str(e)))
                 self.rmq_reset()
                 retry_count += 1
             except Exception as e:
                 traceback.print_exc()
-                logger.error("Unknown exception while enqueuing: {err}".format(err=e.message))
+                logger.error("Unknown exception while enqueuing: {err}".format(err=str(e)))
                 raise
 
     def signal_term_handler(self, signum, frame):

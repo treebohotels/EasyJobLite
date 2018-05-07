@@ -4,8 +4,8 @@ import logging
 import traceback
 
 import easyjoblite.exception
-from base_rmq_consumer import BaseRMQConsumer
 from easyjoblite import constants
+from easyjoblite.consumers.base_rmq_consumer import BaseRMQConsumer
 from easyjoblite.job import EasyJob
 from easyjoblite.response import EasyResponse
 
@@ -75,7 +75,7 @@ class WorkQueueConsumer(BaseRMQConsumer):
                                           )
         except (Exception, easyjoblite.exception.ApiTimeoutException) as e:
             traceback.print_exc()
-            logger.error(e.message)
+            logger.error(str(e))
             message.ack()
             self._push_message_to_error_queue(body, message, job)
         except easyjoblite.exception.UnableToCreateJob as e:
@@ -104,7 +104,7 @@ class WorkQueueConsumer(BaseRMQConsumer):
 
         except Exception as e:
             traceback.print_exc()
-            logger.error("Error moving the raw-error to dead-letter-queue: {err}".format(err=e.message))
+            logger.error("Error moving the raw-error to dead-letter-queue: {err}".format(err=str(e)))
 
     def _push_msg_to_dlq(self, body, message, job):
         """
@@ -122,7 +122,7 @@ class WorkQueueConsumer(BaseRMQConsumer):
 
         except Exception as e:
             traceback.print_exc()
-            err_msg = "Error moving the work-item to dead-letter-queue: {err}".format(err=e.message)
+            err_msg = "Error moving the work-item to dead-letter-queue: {err}".format(err=str(e))
             logger.error(err_msg)
             self.__push_raw_msg_to_dlq(body, message, err_msg)
 
@@ -146,8 +146,8 @@ class WorkQueueConsumer(BaseRMQConsumer):
                 self.produce_to_queue(constants.RETRY_QUEUE, body, job)
             except Exception as e:
                 traceback.print_exc()
-                logger.error("Error moving the work-item to error-queue: {err}".format(err=e.message))
-                self.__push_raw_msg_to_dlq(body, message, e.message)
+                logger.error("Error moving the work-item to error-queue: {err}".format(err=str(e)))
+                self.__push_raw_msg_to_dlq(body, message, str(e))
         else:
             er_message = "Max retries exceeded, moving work-item to DLQ for manual intervention."
             logger.info(er_message)
