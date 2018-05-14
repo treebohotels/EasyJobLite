@@ -3,7 +3,7 @@
 import logging
 import traceback
 
-from base_rmq_consumer import BaseRMQConsumer
+from easyjoblite.consumers.base_rmq_consumer import BaseRMQConsumer
 from easyjoblite.job import EasyJob
 
 

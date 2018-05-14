@@ -18,7 +18,6 @@ setup(
     packages=find_packages(exclude=['tests', 'samples']),
     install_requires=[
         'kombu==3.0.35',
-        'importlib',
         'click>=3.0.0',
         'PyYaml'
     ],

@@ -3,8 +3,9 @@
 import logging
 import traceback
 
-import constants
 import yaml
+
+from easyjoblite import constants
 from easyjoblite.utils import update_import_paths
 
 
@@ -119,7 +120,7 @@ class Configuration(object):
                 self.set_config(**loaded_config)
         except Exception as e:
             traceback.print_exc()
-            logger.error("Unable to load config file: {0} with exception {1}".format(str(file_path), e.message))
+            logger.error("Unable to load config file: {0} with exception {1}".format(str(file_path), e))
             self.load_with_defaults()
             self.dump_to_file(file_path)
 
@@ -148,7 +149,7 @@ class Configuration(object):
             config_file.close()
         except Exception as e:
             traceback.print_exc()
-            logger.error("Unable to dump config file: {0} with exception {1}".format(str(file_path), e.message))
+            logger.error("Unable to dump config file: {0} with exception {1}".format(str(file_path), e))
 
     def get_mq_config(self, conf_type):
         """
