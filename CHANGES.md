@@ -1,3 +1,7 @@
+### 1.4.0
+(18 May 2018)
+- fixed the issues of consumer getting irresponsive due to inactivity
+
 ### 0.5.2:
 (June 14, 2017)
 

@@ -174,7 +174,37 @@ def update_import_paths(import_paths):
         sys.path = import_paths.split(':') + sys.path
 
 
-def enqueue(producer, queue_type, job, body):
+def get_default_retry_policy():
+    """
+    Gets the default retry policy of the producer
+    :return: the default retry policy
+    """
+    retry_policy = {
+        'interval_start': 0,  # First retry immediately,
+        'interval_step': 2,  # then increase by 2s for every retry.
+        'interval_max': 30,  # but don't exceed 30s between retries.
+        'max_retries': 3,  # give up after 3 tries.
+    }
+    return retry_policy
+
+
+def get_default_heartbeat_interval():
+    """
+    gets the frequency at which the connections should hearbeat
+    :return: the number of seconds in which to heart beat
+    """
+    return 5
+
+
+def get_default_prefetch_count():
+    """
+    gets the number of messages prefetched from the queue by default
+    :return: number of messages to be prefetched
+    """
+    return 50
+
+
+def enqueue(producer, queue_type, job, body, retry=True, retry_policy=get_default_retry_policy()):
     """
     enque a job in the given queue
     :param producer: the producer to be used
@@ -188,4 +218,6 @@ def enqueue(producer, queue_type, job, body):
     producer.publish(body=body,
                      headers=headers,
                      routing_key=routing_key,
+                     retry=retry,
+                     retry_policy=retry_policy,
                      delivery_mode=PERSISTENT_DELIVERY_MODE)
