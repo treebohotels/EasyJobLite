@@ -10,7 +10,7 @@ from kombu import Connection
 from kombu import Consumer
 from kombu import Producer
 
-from easyjoblite.utils import enqueue, is_main_thread
+from easyjoblite.utils import enqueue, is_main_thread, get_default_heartbeat_interval, get_default_prefetch_count
 
 
 class BaseRMQConsumer(object):
@@ -49,7 +49,7 @@ class BaseRMQConsumer(object):
     def should_run_loop(self):
         return self._should_block
 
-    def start_connection(self):
+    def start_connection(self, heartbeat_interval=get_default_heartbeat_interval()):
         """
         reset the connection to rabbit mq
         :return: 
@@ -59,13 +59,13 @@ class BaseRMQConsumer(object):
 
         # todo: do we need to make confirm_publish configurable?
         self._conn = Connection(self.get_config().rabbitmq_url,
-                                transport_options={'confirm_publish': True})
+                                transport_options={'confirm_publish': True}, heartbeat=heartbeat_interval)
 
         # setup producer to push to error and dlqs
         self._producer = Producer(channel=self._conn.channel(),
                                   exchange=self._orchestrator.get_exchange())
 
-    def start_rmq_consume(self):
+    def start_rmq_consume(self, prefetch_count=get_default_prefetch_count()):
         """
         start consuming from rmq
         :return: 
@@ -79,6 +79,7 @@ class BaseRMQConsumer(object):
         self._queue_consumer = Consumer(channel=channel,
                                         queues=[self._from_queue],
                                         callbacks=[self.process_message])
+        self._queue_consumer.qos(prefetch_count=prefetch_count)
         self._queue_consumer.consume()
 
     def rmq_reset(self):

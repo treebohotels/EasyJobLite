@@ -21,7 +21,7 @@ from easyjoblite.consumers.retry_queue_consumer import RetryQueueConsumer
 from easyjoblite.consumers.work_queue_consumer import WorkQueueConsumer
 from easyjoblite.exception import EasyJobServiceNotStarted
 from easyjoblite.job import EasyJob
-from easyjoblite.utils import enqueue, is_main_thread, stop_all_workers
+from easyjoblite.utils import enqueue, is_main_thread, stop_all_workers, get_default_heartbeat_interval
 
 
 class Orchestrator(object):
@@ -106,7 +106,7 @@ class Orchestrator(object):
             self.create_consumer(constants.DEAD_LETTER_QUEUE, is_detached)
             time.sleep(2)
 
-    def setup_entities(self):
+    def setup_entities(self, heartbeat_interval=get_default_heartbeat_interval()):
         """
         declare all required entities
         no advanced error handling yet (like error on declaration with altered properties etc)
@@ -147,7 +147,7 @@ class Orchestrator(object):
 
         # todo: do we need to make confirm_publish configurable?
         self._conn = Connection(self.get_config().rabbitmq_url,
-                                transport_options={'confirm_publish': True})
+                                transport_options={'confirm_publish': True}, heartbeat=heartbeat_interval)
 
         # declare all the exchanges and queues needed (declare, not overwrite existing)
         for entity in [self._booking_exchange, self.work_queue, self.retry_queue,

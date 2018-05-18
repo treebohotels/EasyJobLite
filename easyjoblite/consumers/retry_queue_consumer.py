@@ -10,6 +10,7 @@ from kombu import Consumer
 from easyjoblite import constants
 from easyjoblite.consumers.base_rmq_consumer import BaseRMQConsumer
 from easyjoblite.job import EasyJob
+from easyjoblite.utils import get_default_prefetch_count
 
 
 class RetryQueueConsumer(BaseRMQConsumer):
@@ -96,7 +97,7 @@ class RetryQueueConsumer(BaseRMQConsumer):
 
         logger.debug("shoveller: moved {t}:'{d}' work-item to buffer queue".format(t=job.tag, d=body))
 
-    def _shovel_to_buffer(self, from_queue):
+    def _shovel_to_buffer(self, from_queue, prefetch_count=get_default_prefetch_count()):
         """
         poor man's alternative to the shovel plugin
 
@@ -111,6 +112,7 @@ class RetryQueueConsumer(BaseRMQConsumer):
         queue_consumer = Consumer(channel=channel,
                                   queues=[from_queue],
                                   callbacks=[self._shoveller])
+        queue_consumer.qos(prefetch_count=prefetch_count)
         queue_consumer.consume()
 
         # finally drain all the work items from error-queue into shoveller
