@@ -78,6 +78,7 @@ class BaseRMQConsumer(object):
         self._queue_consumer = Consumer(channel=channel,
                                         queues=[self._from_queue],
                                         callbacks=[self.process_message])
+        self._queue_consumer.qos(prefetch_count=self._orchestrator.get_config().rmq_config.prefetch_count)
         self._queue_consumer.consume()
 
     def rmq_reset(self):
@@ -173,7 +174,9 @@ class BaseRMQConsumer(object):
 
         while retry_count < max_retry_count:
             try:
-                enqueue(self._producer, queue_type, job, body)
+                enqueue(self._producer, queue_type, job, body,
+                        self._orchestrator.get_config().rmq_config.retry,
+                        self._orchestrator.get_config().rmq_config.retry_policy)
                 break
             except RecoverableConnectionError as e:
                 logger.error(

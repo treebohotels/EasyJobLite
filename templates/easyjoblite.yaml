@@ -12,3 +12,13 @@ pid_file_path: /var/tmp/easyjoblite.pid
 rabbitmq_url: amqp://guest:guest@localhost:5672//
 workers_log_file_path: /var/tmp/easyjoblite.log
 health_check_interval: 2
+rmq_config:
+  heartbeat_interval: 5
+  prefetch_count: 10
+  retry: True
+  retry_policy:
+    interval_start: 0
+    interval_step: 2
+    interval_max: 30
+    max_retries: 3
+

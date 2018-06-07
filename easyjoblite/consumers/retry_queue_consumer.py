@@ -110,6 +110,7 @@ class RetryQueueConsumer(BaseRMQConsumer):
         queue_consumer = Consumer(channel=channel,
                                   queues=[from_queue],
                                   callbacks=[self._shoveller])
+        queue_consumer.qos(prefetch_count=self._orchestrator.get_config().rmq_config.prefetch_count)
         queue_consumer.consume()
 
         # finally drain all the work items from error-queue into shoveller

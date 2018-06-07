@@ -174,18 +174,28 @@ def update_import_paths(import_paths):
         sys.path = import_paths.split(':') + sys.path
 
 
-def enqueue(producer, queue_type, job, body):
+def enqueue(producer, queue_type, job, body, retry, retry_policy=None):
     """
     enque a job in the given queue
     :param producer: the producer to be used
     :param queue_type: type of queue (worker, retry, dead)
     :param job: the job object
     :param body: the body payload of the job
+    :param retry: enable rabbitmq retry
+    :param retry_policy: rabbitmq retry policy
     :return: none
     """
     routing_key = "{type}.{tag}".format(type=queue_type, tag=job.tag)
     headers = job.to_dict()
-    producer.publish(body=body,
-                     headers=headers,
-                     routing_key=routing_key,
-                     delivery_mode=PERSISTENT_DELIVERY_MODE)
+    if retry:
+        producer.publish(body=body,
+                         headers=headers,
+                         routing_key=routing_key,
+                         retry=retry,
+                         retry_policy=retry_policy,
+                         delivery_mode=PERSISTENT_DELIVERY_MODE)
+    else:
+        producer.publish(body=body,
+                         headers=headers,
+                         routing_key=routing_key,
+                         delivery_mode=PERSISTENT_DELIVERY_MODE)

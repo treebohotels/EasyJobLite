@@ -147,7 +147,8 @@ class Orchestrator(object):
 
         # todo: do we need to make confirm_publish configurable?
         self._conn = Connection(self.get_config().rabbitmq_url,
-                                transport_options={'confirm_publish': True})
+                                transport_options={'confirm_publish': True},
+                                heartbeat=self.get_config().rmq_config.heartbeat_interval)
 
         # declare all the exchanges and queues needed (declare, not overwrite existing)
         for entity in [self._booking_exchange, self.work_queue, self.retry_queue,
@@ -333,7 +334,8 @@ class Orchestrator(object):
                              content_type=content_type, notification_handler=notification_handler)
 
         # enqueue
-        enqueue(self._producer, constants.WORK_QUEUE, job, data)
+        enqueue(self._producer, constants.WORK_QUEUE, job, data, self.get_config().rmq_config.retry,
+                self.get_config().rmq_config.retry_policy)
 
         return job.id
 

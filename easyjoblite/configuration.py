@@ -2,10 +2,21 @@
 
 import logging
 import traceback
-
-import constants
 import yaml
+
+from easyjoblite import constants
 from easyjoblite.utils import update_import_paths
+
+
+class RabbitMQConfig(object):
+    def __init__(self, heartbeat_interval, prefetch_count, retry, retry_policy):
+        self.heartbeat_interval = heartbeat_interval
+        self.prefetch_count = prefetch_count
+        self.retry = retry
+        self.retry_policy = retry_policy
+
+    def __str__(self):
+        return str(self.__dict__)
 
 
 class Configuration(object):
@@ -30,6 +41,7 @@ class Configuration(object):
         :param dead_message_log_file: the path to dump the dead letter messages without a event handler
         :param config_file: the path to store configuration
         :param health_check_interval: the health check interval when run in orchestrator mode
+        :param rmq_config: the advanced config for rabbitmq
         """
 
         # first initialize everything with defaults
@@ -60,6 +72,10 @@ class Configuration(object):
         self.dead_message_log_file = constants.DEFAULT_DL_LOG_FILE
         self.config_file = constants.DEFAULT_CONFIG_FILE
         self.health_check_interval = constants.DEFAULT_HEALTH_CHECK_INTERVAL
+        self.rmq_config = RabbitMQConfig(heartbeat_interval=constants.DEFAULT_RMQ_HEARTBEAT_INTERVAL,
+                                         prefetch_count=constants.DEFAULT_RMQ_PREFETCH_COUNT,
+                                         retry=constants.DEFAULT_RMQ_SHOULD_RETRY,
+                                         retry_policy=constants.DEFAULT_RMQ_RETRY_POLICY)
         update_import_paths(self.import_paths)
 
     def set_config(self, **kwargs):
@@ -111,6 +127,9 @@ class Configuration(object):
         if 'health_check_interval' in kwargs:
             self.health_check_interval = kwargs['health_check_interval']
 
+        if 'rmq_config' in kwargs:
+            self.rmq_config = RabbitMQConfig(**kwargs['rmq_config'])
+
     def load_from_file(self, file_path):
         logger = logging.getLogger(self.__class__.__name__)
         try:
@@ -139,7 +158,8 @@ class Configuration(object):
             "pid_file_path": self.pid_file_path,
             "workers_log_file_path": self.workers_log_file_path,
             "dead_message_log_file": self.dead_message_log_file,
-            "health_check_interval": self.health_check_interval
+            "health_check_interval": self.health_check_interval,
+            "rmq_config": self.rmq_config
         }
 
         try:
