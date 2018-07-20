@@ -27,7 +27,7 @@ def as_text(v):
 
 
 def is_string_type(value):
-    string_types = (str, unicode)
+    string_types = (str)
     if isinstance(value, string_types):
         return True
     else:
@@ -58,7 +58,7 @@ def load_obj(path):
             with open(path, 'rb') as f:
                 return pickle.load(f)
         except (IOError, EOFError) as e:
-            logger.warning("failed loading obj with error: {}. Will retry for {} time.".format(retry_count, e.message))
+            logger.warning("failed loading obj with error: {}. Will retry for {} time.".format(retry_count, str(e)))
             time.sleep(2)
             retry_count -= 1
 

@@ -1,27 +1,27 @@
 # -*- coding: utf-8 -*-
 
 import logging
+import os
 import signal
 import subprocess
 import time
 import traceback
-from exceptions import KeyError
 from multiprocessing import Process
 
-import constants
-import os
-from configuration import Configuration
-from easyjoblite import state
-from easyjoblite.consumers.dead_letter_queue_consumer import DeadLetterQueueConsumer
-from easyjoblite.consumers.retry_queue_consumer import RetryQueueConsumer
-from easyjoblite.consumers.work_queue_consumer import WorkQueueConsumer
-from easyjoblite.utils import enqueue, is_main_thread, stop_all_workers
-from exception import EasyJobServiceNotStarted
-from job import EasyJob
 from kombu import Connection
 from kombu import Exchange
 from kombu import Producer
 from kombu import Queue
+
+from easyjoblite import constants
+from easyjoblite import state
+from easyjoblite.configuration import Configuration
+from easyjoblite.consumers.dead_letter_queue_consumer import DeadLetterQueueConsumer
+from easyjoblite.consumers.retry_queue_consumer import RetryQueueConsumer
+from easyjoblite.consumers.work_queue_consumer import WorkQueueConsumer
+from easyjoblite.exception import EasyJobServiceNotStarted
+from easyjoblite.job import EasyJob
+from easyjoblite.utils import enqueue, is_main_thread, stop_all_workers
 
 
 class Orchestrator(object):

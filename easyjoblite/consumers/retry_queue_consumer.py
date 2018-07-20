@@ -5,10 +5,11 @@ import socket
 import time
 import traceback
 
-from base_rmq_consumer import BaseRMQConsumer
-from easyjoblite import constants
-from easyjoblite.job import EasyJob
 from kombu import Consumer
+
+from easyjoblite import constants
+from easyjoblite.consumers.base_rmq_consumer import BaseRMQConsumer
+from easyjoblite.job import EasyJob
 
 
 class RetryQueueConsumer(BaseRMQConsumer):
@@ -59,7 +60,7 @@ class RetryQueueConsumer(BaseRMQConsumer):
 
             except Exception as e:
                 traceback.print_exc()
-                logger.error("Error moving the work-item to error-queue: {err}".format(err=e.message))
+                logger.error("Error moving the work-item to error-queue: {err}".format(err=e))
                 # todo: what do we do next in this case?
 
         else:
@@ -75,7 +76,7 @@ class RetryQueueConsumer(BaseRMQConsumer):
 
             except Exception as e:
                 traceback.print_exc()
-                logger.error("Error moving the work-item to dead-letter-queue: {err}".format(err=e.message))
+                logger.error("Error moving the work-item to dead-letter-queue: {err}".format(err=e))
                 # todo: what do we do next in this case?
 
     def _shoveller(self, body, message):
