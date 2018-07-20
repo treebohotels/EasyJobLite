@@ -34,7 +34,7 @@ class TestOrchestrator(TestCase):
         exchange_mock.assert_called_with(orchestrator.get_config().get_mq_config(constants.EXCHANGE), type='topic',
                                          durable=True)
 
-        connection_mock.assert_called_with("test.rabbitmq.com:8000", transport_options={'confirm_publish': True})
+        connection_mock.assert_called_with("test.rabbitmq.com:8000", heartbeat=5, transport_options={'confirm_publish': True})
 
         producer_mock.assert_called()
 
@@ -110,4 +110,5 @@ class TestOrchestrator(TestCase):
         orchestrator.setup_entities()
 
         orchestrator.enqueue_job(api, constants.API_REMOTE, api_request_headers=api_request_headers, data=body)
-        enqueue_mock.assert_called_with(orchestrator._producer, "work", job_mock, body)
+        rmq_config = {'interval_start': 0, 'interval_max': 30, 'max_retries': 3, 'interval_step': 2}
+        enqueue_mock.assert_called_with(orchestrator._producer, "work", job_mock, body, True, rmq_config)

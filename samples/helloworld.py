@@ -16,7 +16,8 @@ def test_job_work():
     print("MAX RETRIES: " + str(worker.get_config().max_retries))
 
     worker.setup_entities()
-    print(str(worker.get_config().__dict__))
+    print str(worker.get_config().__dict__)
+    print str(worker.get_config().rmq_config)
     data = {"test1": "test2"}
     worker.enqueue_job(local_method_job_failed, constants.API_LOCAL, data=data)
     worker.start_service()
