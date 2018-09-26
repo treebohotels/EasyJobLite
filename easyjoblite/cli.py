@@ -4,13 +4,15 @@ cli file for easyjoblite
 """
 
 import logging
+import os
 
 import click
-import constants
-import orchestrator
-import os
-import state
-import utils
+
+from easyjoblite import constants
+from easyjoblite.workers import worker_manager
+from easyjoblite import orchestrator
+from easyjoblite import state
+from easyjoblite import utils
 
 logging.basicConfig()
 
@@ -77,7 +79,7 @@ def start(type, url, import_paths, max_retries, asyc_timeout, eqc_sleep_duration
 def stop(worker_type):
     """command to stop the processes"""
     try:
-        utils.stop_all_workers(worker_type)
+        worker_manager.stop_all_workers(worker_type)
     except KeyError as e:
         click.echo("Invalid worker_type send to stop statement.")
 

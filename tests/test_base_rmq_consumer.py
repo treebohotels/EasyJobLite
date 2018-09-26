@@ -5,10 +5,10 @@ from unittest import TestCase
 
 from mock import patch, Mock
 
-logging.basicConfig()
-
 from easyjoblite.orchestrator import Orchestrator
 from easyjoblite.consumers import base_rmq_consumer
+
+logging.basicConfig()
 
 
 class TestBaseRMQConsumer(TestCase):
