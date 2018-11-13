@@ -22,7 +22,7 @@ from easyjoblite.consumers.work_queue_consumer import WorkQueueConsumer
 from easyjoblite.exception import EasyJobServiceNotStarted
 from easyjoblite.job import EasyJob
 from easyjoblite.utils import enqueue, is_main_thread
-from easyjoblite.workers.worker_manager import stop_all_workers
+from easyjoblite.workers import worker_manager
 
 logger = logging.getLogger(__name__)
 
@@ -361,4 +361,4 @@ class Orchestrator(object):
         logger.warning("SIGTERM found so stopping worker with signum {0}".format(signum))
         self._run_healthcheck = False
         if self._is_master:
-            stop_all_workers(constants.STOP_TYPE_ALL)
+            worker_manager.stop_all_workers(constants.STOP_TYPE_ALL)

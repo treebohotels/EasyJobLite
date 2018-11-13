@@ -145,6 +145,11 @@ class BaseRMQConsumer(object):
             except (IOError, KeyboardInterrupt) as e:
                 logger.error("Got io error so shutting down.".format(err=str(e)))
                 self._should_block = False
+            except RecoverableConnectionError as e:
+                logger.error(
+                    "RecoverableConnectionError exception while consuming so resetting connection: {err}".format(
+                        err=str(e)))
+                self.rmq_reset()
             except Exception as e:
                 logger.warning("Exception happened may be connection reset.")
                 if not self._is_connection_reset:

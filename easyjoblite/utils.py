@@ -69,7 +69,7 @@ def is_process_running(pid):
     if pid < 0:
         return False
     try:
-        ret = os.popen("ps -eo pid,stat | grep {} |  grep -v \'Z\' | awk \'{{ print $1}}\'".format(pid)).read()
+        ret = os.popen("ps -eo pid,stat | grep -w {} |  grep -v \'Z\' | awk \'{{ print $1}}\'".format(pid)).read()
 
         if ret and int(ret) == pid:
             return True
@@ -78,8 +78,8 @@ def is_process_running(pid):
     except Exception as e:
         traceback.print_exc()
         logger = logging.getLogger("is_process_running")
-        logger.warning("something broke while getting process state so taking it as not running.")
-    else:
+        logger.exception("is_process_running")
+        logger.warning("something broke while getting process state so taking it as running.")
         return True
 
 
