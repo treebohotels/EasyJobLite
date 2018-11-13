@@ -56,5 +56,16 @@ DEFAULT_DL_LOG_FILE = "/var/tmp/easyjoblite_dl.log"
 DEFAULT_CONFIG_FILE = "/var/tmp/easyjoblite.yaml"
 DEFAULT_HEALTH_CHECK_INTERVAL = 2
 
+# RMQ Default config
+DEFAULT_RMQ_HEARTBEAT_INTERVAL = 5
+DEFAULT_RMQ_PREFETCH_COUNT = 50
+DEFAULT_RMQ_SHOULD_RETRY = True
+DEFAULT_RMQ_RETRY_POLICY = {
+    'interval_start': 0,  # First retry immediately,
+    'interval_step': 2,  # then increase by 2s for every retry.
+    'interval_max': 30,  # but don't exceed 30s between retries.
+    'max_retries': 3,  # give up after 3 tries.
+}
+
 BASE_COMMAND = "nohup easyjoblite"
 STOP_TYPE_ALL = "all"

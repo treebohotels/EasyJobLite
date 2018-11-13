@@ -5,10 +5,10 @@ from unittest import TestCase
 
 from mock import patch, Mock
 
-logging.basicConfig()
-
 from easyjoblite.orchestrator import Orchestrator
 from easyjoblite.consumers import base_rmq_consumer
+
+logging.basicConfig()
 
 
 class TestBaseRMQConsumer(TestCase):
@@ -96,4 +96,4 @@ class TestBaseRMQConsumer(TestCase):
         body = {"test": "test"}
         job_mock = Mock()
         base_consumer.produce_to_queue("dead", body, job_mock)
-        enqueue_mock.assert_called_with(pro_mock, "dead", job_mock, body)
+        enqueue_mock.assert_called()

@@ -79,6 +79,7 @@ class BaseRMQConsumer(object):
         self._queue_consumer = Consumer(channel=channel,
                                         queues=[self._from_queue],
                                         callbacks=[self.process_message])
+        self._queue_consumer.qos(prefetch_count=self._orchestrator.get_config().rmq_config.prefetch_count)
         self._queue_consumer.consume()
 
     def rmq_reset(self):
@@ -144,6 +145,11 @@ class BaseRMQConsumer(object):
             except (IOError, KeyboardInterrupt) as e:
                 logger.error("Got io error so shutting down.".format(err=str(e)))
                 self._should_block = False
+            except RecoverableConnectionError as e:
+                logger.error(
+                    "RecoverableConnectionError exception while consuming so resetting connection: {err}".format(
+                        err=str(e)))
+                self.rmq_reset()
             except Exception as e:
                 logger.warning("Exception happened may be connection reset.")
                 if not self._is_connection_reset:
@@ -174,7 +180,9 @@ class BaseRMQConsumer(object):
 
         while retry_count < max_retry_count:
             try:
-                enqueue(self._producer, queue_type, job, body)
+                enqueue(self._producer, queue_type, job, body,
+                        self._orchestrator.get_config().rmq_config.retry,
+                        self._orchestrator.get_config().rmq_config.retry_policy)
                 break
             except RecoverableConnectionError as e:
                 logger.error(

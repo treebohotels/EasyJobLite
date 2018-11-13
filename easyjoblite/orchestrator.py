@@ -21,26 +21,37 @@ from easyjoblite.consumers.retry_queue_consumer import RetryQueueConsumer
 from easyjoblite.consumers.work_queue_consumer import WorkQueueConsumer
 from easyjoblite.exception import EasyJobServiceNotStarted
 from easyjoblite.job import EasyJob
-from easyjoblite.utils import enqueue, is_main_thread, stop_all_workers
+from easyjoblite.utils import enqueue, is_main_thread
+from easyjoblite.workers import worker_manager
+
+logger = logging.getLogger(__name__)
 
 
 class Orchestrator(object):
+    """
+    The central class to expose the core features of the library for usage.
+    """
+
     def __init__(self, **kwargs):
-        logger = logging.getLogger(self.__class__.__name__)
+
+        # Initialize varaibles
         self.consumer_creater_map = {
             constants.WORK_QUEUE: self.create_work_cunsumer,
             constants.RETRY_QUEUE: self.create_retry_queue_consumer,
             constants.DEAD_LETTER_QUEUE: self.create_dead_letter_queue_consumer
         }
-        if is_main_thread():
-            logger.info("Adding signal handler.")
-            signal.signal(signal.SIGTERM, self.orchestrator_signal_term_handler)
-        self._config = Configuration(**kwargs)
-
         self._service_inited = False
         self._booking_exchange = None
         self._run_healthcheck = False
         self._is_master = False
+
+        # Initialize config
+        self._config = Configuration(**kwargs)
+
+        # Add signal handler
+        if is_main_thread():
+            logger.info("Adding signal handler.")
+            signal.signal(signal.SIGTERM, self.orchestrator_signal_term_handler)
 
     def validate_init(self):
         if not self._service_inited:
@@ -147,7 +158,8 @@ class Orchestrator(object):
 
         # todo: do we need to make confirm_publish configurable?
         self._conn = Connection(self.get_config().rabbitmq_url,
-                                transport_options={'confirm_publish': True})
+                                transport_options={'confirm_publish': True},
+                                heartbeat=self.get_config().rmq_config.heartbeat_interval)
 
         # declare all the exchanges and queues needed (declare, not overwrite existing)
         for entity in [self._booking_exchange, self.work_queue, self.retry_queue,
@@ -333,7 +345,8 @@ class Orchestrator(object):
                              content_type=content_type, notification_handler=notification_handler)
 
         # enqueue
-        enqueue(self._producer, constants.WORK_QUEUE, job, data)
+        enqueue(self._producer, constants.WORK_QUEUE, job, data, self.get_config().rmq_config.retry,
+                self.get_config().rmq_config.retry_policy)
 
         return job.id
 
@@ -348,4 +361,4 @@ class Orchestrator(object):
         logger.warning("SIGTERM found so stopping worker with signum {0}".format(signum))
         self._run_healthcheck = False
         if self._is_master:
-            stop_all_workers(constants.STOP_TYPE_ALL)
+            worker_manager.stop_all_workers(constants.STOP_TYPE_ALL)

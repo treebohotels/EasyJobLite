@@ -5,14 +5,11 @@ import os
 import pickle
 import signal
 import sys
-import time
 import threading
+import time
 import traceback
 
 from kombu.entity import PERSISTENT_DELIVERY_MODE
-
-from easyjoblite import state
-from easyjoblite import constants
 
 
 def as_text(v):
@@ -72,7 +69,7 @@ def is_process_running(pid):
     if pid < 0:
         return False
     try:
-        ret = os.popen("ps -eo pid,stat | grep {} |  grep -v \'Z\' | awk \'{{ print $1}}\'".format(pid)).read()
+        ret = os.popen("ps -eo pid,stat | grep -w {} |  grep -v \'Z\' | awk \'{{ print $1}}\'".format(pid)).read()
 
         if ret and int(ret) == pid:
             return True
@@ -81,8 +78,8 @@ def is_process_running(pid):
     except Exception as e:
         traceback.print_exc()
         logger = logging.getLogger("is_process_running")
-        logger.warning("something broke while getting process state so taking it as not running.")
-    else:
+        logger.exception("is_process_running")
+        logger.warning("something broke while getting process state so taking it as running.")
         return True
 
 
@@ -127,43 +124,6 @@ def is_main_thread():
     return threading.current_thread().__class__.__name__ == '_MainThread'
 
 
-def kill_workers(service_state, type):
-    """
-    function to kill all the workers of the given type
-    :param service_state: current state of the service
-    :param type: the type of the worker to kill
-    :return: 
-    """
-    logger = logging.getLogger("kill_workers")
-    logger.info("Started killing : " + type + " with list " + str(service_state.get_pid_list(type)))
-    pid_list = list(service_state.get_pid_list(type))
-    for pid in pid_list:
-        kill_process(pid)
-        logging.info("Done killing : " + str(pid))
-
-
-def stop_all_workers(worker_type):
-    """
-    stops all the workers of the given type
-    :param worker_type: 
-    :return: 
-    """
-    logger = logging.getLogger("stop_all_workers")
-    service_state = state.ServiceState()
-    worker_type_list = [constants.WORK_QUEUE, constants.RETRY_QUEUE, constants.DEAD_LETTER_QUEUE]
-
-    if worker_type in worker_type_list:
-        kill_workers(service_state, worker_type)
-        logger.info("Done stopping all the workers of worker_type {}".format(worker_type))
-    elif worker_type == constants.STOP_TYPE_ALL:
-        for local_type in worker_type_list:
-            kill_workers(service_state, local_type)
-        logger.info("Done stopping all the workers ")
-    else:
-        raise KeyError
-    service_state.refresh_all_workers_pid()
-
-
 def update_import_paths(import_paths):
     """
     update the import paths in the system
@@ -174,18 +134,28 @@ def update_import_paths(import_paths):
         sys.path = import_paths.split(':') + sys.path
 
 
-def enqueue(producer, queue_type, job, body):
+def enqueue(producer, queue_type, job, body, retry, retry_policy=None):
     """
     enque a job in the given queue
     :param producer: the producer to be used
     :param queue_type: type of queue (worker, retry, dead)
     :param job: the job object
     :param body: the body payload of the job
+    :param retry: enable rabbitmq retry
+    :param retry_policy: rabbitmq retry policy
     :return: none
     """
     routing_key = "{type}.{tag}".format(type=queue_type, tag=job.tag)
     headers = job.to_dict()
-    producer.publish(body=body,
-                     headers=headers,
-                     routing_key=routing_key,
-                     delivery_mode=PERSISTENT_DELIVERY_MODE)
+    if retry:
+        producer.publish(body=body,
+                         headers=headers,
+                         routing_key=routing_key,
+                         retry=retry,
+                         retry_policy=retry_policy,
+                         delivery_mode=PERSISTENT_DELIVERY_MODE)
+    else:
+        producer.publish(body=body,
+                         headers=headers,
+                         routing_key=routing_key,
+                         delivery_mode=PERSISTENT_DELIVERY_MODE)
