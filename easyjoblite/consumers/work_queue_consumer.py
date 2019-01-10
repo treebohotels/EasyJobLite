@@ -7,6 +7,7 @@ import easyjoblite.exception
 from easyjoblite import constants
 from easyjoblite.consumers.base_rmq_consumer import BaseRMQConsumer
 from easyjoblite.job import EasyJob
+from easyjoblite.job_response import JobResponse
 from easyjoblite.response import EasyResponse
 
 
@@ -64,24 +65,26 @@ class WorkQueueConsumer(BaseRMQConsumer):
             logger.debug("recieved api: " + str(api))
 
             response = job.execute(body, self.get_config().async_timeout)
-
             message.ack()
 
-            if response.status_code >= 400:
-                # todo: we should have booking id here in the log message
+            status = JobResponse(response.status_code)
+            if status == JobResponse.IGNORE_RESPONSE_AND_RETRY:
+                # retry job without incrementing retry count
                 logger.info("{status}: {resp}".format(status=response.status_code,
                                                       resp=response.message))
+                self._push_message_to_error_queue(body=body, message=message,
+                                                  job=job, update_retry_count=False)
 
-                if response.status_code >= 500:
-                    # we have a retry-able failure
-                    self._push_message_to_error_queue(body=body, message=message, job=job)
+            elif status == JobResponse.RETRYABLE_FAILURE:
+                # we have a retry-able failure
+                logger.info("{status}: {resp}".format(status=response.status_code,
+                                                      resp=response.message))
+                self._push_message_to_error_queue(body=body, message=message, job=job)
 
-                else:
-                    # push not retry-able error to dlq
-                    self._push_msg_to_dlq(body=body,
-                                          message=message,
-                                          job=job
-                                          )
+            else:
+                # push non retry-able error to dead letter queue
+                self._push_msg_to_dlq(body=body, message=message, job=job)
+
         except (Exception, easyjoblite.exception.ApiTimeoutException) as e:
             traceback.print_exc()
             logger.error(str(e))
@@ -128,7 +131,7 @@ class WorkQueueConsumer(BaseRMQConsumer):
             logger.error(err_msg)
             self.__push_raw_msg_to_dlq(body, message, err_msg)
 
-    def _push_message_to_error_queue(self, body, message, job):
+    def _push_message_to_error_queue(self, body, message, job, update_retry_count=True):
         """
         pushes the message to appropriate error queue based on number of
         retries on the message so far
@@ -144,7 +147,9 @@ class WorkQueueConsumer(BaseRMQConsumer):
             logger.debug("Moving work-item {t}:'{d}' to error-queue for retry later".format(t=job.tag,
                                                                                             d=body))
             try:
-                job.increment_retries()
+                if update_retry_count:
+                    job.increment_retries()
+
                 self.produce_to_queue(constants.RETRY_QUEUE, body, job)
             except Exception as e:
                 traceback.print_exc()
