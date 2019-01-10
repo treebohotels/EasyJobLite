@@ -81,7 +81,7 @@ class WorkQueueConsumer(BaseRMQConsumer):
                                                       resp=response.message))
                 self._push_message_to_error_queue(body=body, message=message, job=job)
 
-            else:
+            elif status == JobResponse.NON_RETRYABLE_FAILURE:
                 # push non retry-able error to dead letter queue
                 self._push_msg_to_dlq(body=body, message=message, job=job)
 
