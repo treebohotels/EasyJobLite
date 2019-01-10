@@ -7,6 +7,7 @@ import easyjoblite.exception
 from easyjoblite import constants
 from easyjoblite.consumers.base_rmq_consumer import BaseRMQConsumer
 from easyjoblite.job import EasyJob
+from easyjoblite.job_response import JobResponse
 from easyjoblite.response import EasyResponse
 
 
@@ -67,14 +68,15 @@ class WorkQueueConsumer(BaseRMQConsumer):
 
             message.ack()
 
-            if response.status_code >= 400:
+            if response.status_code != JobResponse.SUCCESS:
                 # todo: we should have booking id here in the log message
                 logger.info("{status}: {resp}".format(status=response.status_code,
                                                       resp=response.message))
 
-                if response.status_code >= 500:
-                    # we have a retry-able failure
-                    self._push_message_to_error_queue(body=body, message=message, job=job)
+                if response.status_code in [JobResponse.RETRYABLE_FAILURE, JobResponse.IGNORE_RESPONSE_AND_RETRY]:
+                    # we have a retry-able failure or a retry job response
+                    self._push_message_to_error_queue(body=body, message=message,
+                                                      job=job, status_code=response.status_code)
 
                 else:
                     # push not retry-able error to dlq
@@ -128,7 +130,7 @@ class WorkQueueConsumer(BaseRMQConsumer):
             logger.error(err_msg)
             self.__push_raw_msg_to_dlq(body, message, err_msg)
 
-    def _push_message_to_error_queue(self, body, message, job):
+    def _push_message_to_error_queue(self, body, message, job, status_code):
         """
         pushes the message to appropriate error queue based on number of
         retries on the message so far
@@ -144,7 +146,9 @@ class WorkQueueConsumer(BaseRMQConsumer):
             logger.debug("Moving work-item {t}:'{d}' to error-queue for retry later".format(t=job.tag,
                                                                                             d=body))
             try:
-                job.increment_retries()
+                if status_code != JobResponse.IGNORE_RESPONSE_AND_RETRY:
+                    job.increment_retries()
+
                 self.produce_to_queue(constants.RETRY_QUEUE, body, job)
             except Exception as e:
                 traceback.print_exc()
