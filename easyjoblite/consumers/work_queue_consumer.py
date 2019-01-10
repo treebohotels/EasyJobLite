@@ -65,17 +65,17 @@ class WorkQueueConsumer(BaseRMQConsumer):
             logger.debug("recieved api: " + str(api))
 
             response = job.execute(body, self.get_config().async_timeout)
-
             message.ack()
 
-            if response.status_code == JobResponse.IGNORE_RESPONSE_AND_RETRY:
+            status = JobResponse(response.status_code)
+            if status == JobResponse.IGNORE_RESPONSE_AND_RETRY:
                 # retry job without incrementing retry count
                 logger.info("{status}: {resp}".format(status=response.status_code,
                                                       resp=response.message))
                 self._push_message_to_error_queue(body=body, message=message,
                                                   job=job, update_retry_count=False)
 
-            elif response.status_code == JobResponse.RETRYABLE_FAILURE:
+            elif status == JobResponse.RETRYABLE_FAILURE:
                 # we have a retry-able failure
                 logger.info("{status}: {resp}".format(status=response.status_code,
                                                       resp=response.message))
