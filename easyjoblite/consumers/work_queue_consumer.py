@@ -68,22 +68,23 @@ class WorkQueueConsumer(BaseRMQConsumer):
 
             message.ack()
 
-            if response.status_code != JobResponse.SUCCESS:
-                # todo: we should have booking id here in the log message
+            if response.status_code == JobResponse.IGNORE_RESPONSE_AND_RETRY:
+                # retry job without incrementing retry count
                 logger.info("{status}: {resp}".format(status=response.status_code,
                                                       resp=response.message))
+                self._push_message_to_error_queue(body=body, message=message,
+                                                  job=job, update_retry_count=False)
 
-                if response.status_code in [JobResponse.RETRYABLE_FAILURE, JobResponse.IGNORE_RESPONSE_AND_RETRY]:
-                    # we have a retry-able failure or a retry job response
-                    self._push_message_to_error_queue(body=body, message=message,
-                                                      job=job, status_code=response.status_code)
+            elif response.status_code == JobResponse.RETRYABLE_FAILURE:
+                # we have a retry-able failure
+                logger.info("{status}: {resp}".format(status=response.status_code,
+                                                      resp=response.message))
+                self._push_message_to_error_queue(body=body, message=message, job=job)
 
-                else:
-                    # push not retry-able error to dlq
-                    self._push_msg_to_dlq(body=body,
-                                          message=message,
-                                          job=job
-                                          )
+            else:
+                # push non retry-able error to dead letter queue
+                self._push_msg_to_dlq(body=body, message=message, job=job)
+
         except (Exception, easyjoblite.exception.ApiTimeoutException) as e:
             traceback.print_exc()
             logger.error(str(e))
@@ -130,7 +131,7 @@ class WorkQueueConsumer(BaseRMQConsumer):
             logger.error(err_msg)
             self.__push_raw_msg_to_dlq(body, message, err_msg)
 
-    def _push_message_to_error_queue(self, body, message, job, status_code):
+    def _push_message_to_error_queue(self, body, message, job, update_retry_count=True):
         """
         pushes the message to appropriate error queue based on number of
         retries on the message so far
@@ -146,7 +147,7 @@ class WorkQueueConsumer(BaseRMQConsumer):
             logger.debug("Moving work-item {t}:'{d}' to error-queue for retry later".format(t=job.tag,
                                                                                             d=body))
             try:
-                if status_code != JobResponse.IGNORE_RESPONSE_AND_RETRY:
+                if update_retry_count:
                     job.increment_retries()
 
                 self.produce_to_queue(constants.RETRY_QUEUE, body, job)
