@@ -264,7 +264,7 @@ class Orchestrator(object):
             self.consumer_creater_map[worker_type]()
         except Exception as e:
             traceback.print_exc()
-            logger.error("Got an exception in the worker : {}".format(e.message))
+            #logger.error("Got an exception in the worker : {}".format(e.message))
 
         service_state = state.ServiceState(self.get_config().pid_file_path)
         service_state.remove_worker_pid(worker_type, os.getpid())
