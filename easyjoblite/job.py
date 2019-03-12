@@ -73,7 +73,13 @@ class EasyJob(object):
             if "notification_handler" in dict_data:
                 job.notification_handler = EasyApi.create_from_dict(dict_data["notification_handler"])
             if "response" in dict_data:
-                job.response = EasyResponse(dict_data["response"])
+                response_object = dict_data["response"]
+                if hasattr(response_object, "status_code") and hasattr(response_object, "message") and \
+                        hasattr(response_object, "data"):
+                    job.response = EasyResponse(status_code=response_object.status_code,
+                                                message=response_object.message, data=response_object.data)
+                else:
+                    job.response = EasyResponse(dict_data["response"])
         except Exception as e:
             raise UnableToCreateJob(str(e), dict_data)
         return job
@@ -129,7 +135,7 @@ class EasyJob(object):
         ret_val = self.job_api.execute(api_dict, async_timeout)
 
         if ret_val.status_code != 200:
-            self.errors.append(ret_val.__dict__)
+            self.errors = ret_val.__dict__
         else:
             self.response = ret_val
 
