@@ -73,11 +73,11 @@ class EasyJob(object):
             if "notification_handler" in dict_data:
                 job.notification_handler = EasyApi.create_from_dict(dict_data["notification_handler"])
             if "response" in dict_data:
-                response_object = dict_data["response"]
-                if hasattr(response_object, "status_code") and hasattr(response_object, "message") and \
-                        hasattr(response_object, "data"):
-                    job.response = EasyResponse(status_code=response_object.status_code,
-                                                message=response_object.message, data=response_object.data)
+                response_dict = dict_data["response"]
+                if response_dict and "status_code" in response_dict and "message" in response_dict and \
+                        "data" in response_dict:
+                    job.response = EasyResponse(status_code=response_dict["status_code"],
+                                                message=response_dict["message"], data=response_dict["data"])
                 else:
                     job.response = EasyResponse(dict_data["response"])
         except Exception as e:
