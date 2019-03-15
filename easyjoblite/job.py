@@ -135,7 +135,7 @@ class EasyJob(object):
         ret_val = self.job_api.execute(api_dict, async_timeout)
 
         if ret_val.status_code != 200:
-            self.errors = ret_val.__dict__
+            self.errors = [ret_val.__dict__]
         else:
             self.response = ret_val
 
